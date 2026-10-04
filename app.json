@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "vyntra-fe",
+    "name": "Vyntra",
     "slug": "vyntra-fe",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,9 +8,12 @@
     "scheme": "vyntrafe",
     "userInterfaceStyle": "automatic",
     "ios": {
+      "bundleIdentifier": "com.vyntra.app",
       "icon": "./assets/expo.icon"
     },
     "android": {
+      "package": "com.vyntra.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -32,11 +35,19 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "4f046868-4187-4b94-a13e-8597d594c369"
+      }
+    },
+    "owner": "nishanth19"
   }
 }

@@ -1,6 +1,5 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * App colors for light and dark mode, plus shared spacing and radius scales.
  */
 
 import '@/global.css';
@@ -9,18 +8,40 @@ import { Platform } from 'react-native';
 
 export const Colors = {
   light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
+    text: '#0F172A',
+    textSecondary: '#64748B',
+    background: '#F6F7FB',
+    surface: '#FFFFFF',
+    border: '#E2E8F0',
+    primary: '#2563EB',
+    primarySoft: '#EAF1FF',
+    onPrimary: '#FFFFFF',
+    danger: '#DC2626',
+    dangerSoft: '#FEF2F2',
+    success: '#16A34A',
+    successSoft: '#EAF8EF',
+    warning: '#D97706',
+    warningSoft: '#FFF6E5',
+    accent: '#7C3AED',
+    accentSoft: '#F3EEFF',
   },
   dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+    text: '#F1F5F9',
+    textSecondary: '#94A3B8',
+    background: '#0B1120',
+    surface: '#141B2D',
+    border: '#253049',
+    primary: '#3B82F6',
+    primarySoft: '#172554',
+    onPrimary: '#FFFFFF',
+    danger: '#F87171',
+    dangerSoft: '#2B1518',
+    success: '#4ADE80',
+    successSoft: '#12271B',
+    warning: '#FBBF24',
+    warningSoft: '#2A2110',
+    accent: '#A78BFA',
+    accentSoft: '#211A38',
   },
 } as const;
 
@@ -61,5 +82,11 @@ export const Spacing = {
   six: 64,
 } as const;
 
-export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
-export const MaxContentWidth = 800;
+export const Radius = {
+  sm: 8,
+  md: 12,
+  lg: 16,
+  full: 999,
+} as const;
+
+export const MaxFormWidth = 440;
