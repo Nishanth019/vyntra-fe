@@ -64,9 +64,16 @@ export function MemberForm({
     email: member?.email ?? '',
     date_of_birth: member?.date_of_birth ?? '',
     start_date: toISODate(new Date()),
+    emergency_contact_name: member?.gym_details?.emergency_contact_name ?? '',
+    emergency_contact_phone: member?.gym_details?.emergency_contact_phone ?? '',
+    emergency_contact_address: member?.gym_details?.emergency_contact_address ?? '',
   });
   const [gender, setGender] = useState(member?.gender ?? '');
   const [planId, setPlanId] = useState<number | null>(currentPlanId);
+  // Discount applies to the membership created on signup / plan change.
+  const [discount, setDiscount] = useState(
+    member?.membership?.discount ? String(Number(member.membership.discount)) : '',
+  );
   // New members usually pay when they join; on edit, recording a payment is opt-in.
   const [recordPayment, setRecordPayment] = useState(!member);
   const [payment, setPayment] = useState({ amount: '', method: 'CASH', reference: '', notes: '' });
@@ -80,6 +87,8 @@ export function MemberForm({
   const plan = plans.find((item) => item.id === planId);
   const planChanged = planId !== currentPlanId;
   const code = values.member_code.trim();
+  // Amount still payable on the plan after any discount — the default for a new payment.
+  const payable = plan ? Math.max(0, Number(plan.amount) - Number(discount || 0)) : undefined;
 
   // Check the member ID is free once typing pauses.
   useEffect(() => {
@@ -116,8 +125,13 @@ export function MemberForm({
     if (values.date_of_birth && !isValidISODate(values.date_of_birth)) next.date_of_birth = 'Use the format YYYY-MM-DD.';
     if (!member && !plan) next.membership_plan_id = 'Choose a plan.';
     if (planChanged && !isValidISODate(values.start_date)) next.start_date = 'Use the format YYYY-MM-DD.';
+    if (discount.trim() && plan) {
+      const value = Number(discount);
+      if (!(value >= 0)) next.discount = 'Enter a valid discount.';
+      else if (value > Number(plan.amount)) next.discount = "Discount can't exceed the plan amount.";
+    }
     if (recordPayment) {
-      const amount = Number(payment.amount || plan?.amount || member?.membership?.amount || 0);
+      const amount = Number(payment.amount || payable || member?.membership?.amount || 0);
       if (!(amount > 0)) next.payment_amount = 'Enter the amount received.';
       if (member && !member.membership && !planChanged) next.payment_amount = 'Choose a plan to record a payment.';
     }
@@ -150,13 +164,25 @@ export function MemberForm({
     if (member ? values.date_of_birth !== (member.date_of_birth ?? '') : values.date_of_birth) {
       input.date_of_birth = values.date_of_birth || null;
     }
+
+    // Emergency contact / address live on the gym profile; send on create or when changed.
+    const emergency = {
+      emergency_contact_name: values.emergency_contact_name.trim(),
+      emergency_contact_phone: values.emergency_contact_phone.trim(),
+      emergency_contact_address: values.emergency_contact_address.trim(),
+    };
+    for (const [key, value] of Object.entries(emergency) as [keyof typeof emergency, string][]) {
+      if (member ? value !== (member.gym_details?.[key] ?? '') : value) input[key] = value;
+    }
+
     if (plan && planChanged) {
       input.membership_plan_id = plan.id;
       input.start_date = values.start_date;
+      if (discount.trim()) input.discount = Number(discount).toFixed(2);
     }
     if (recordPayment) {
       input.payment = {
-        amount: Number(payment.amount || plan?.amount || member?.membership?.amount).toFixed(2),
+        amount: Number(payment.amount || payable || member?.membership?.amount).toFixed(2),
         payment_method: payment.method,
         ...(payment.reference.trim() ? { transaction_reference: payment.reference.trim() } : {}),
         ...(payment.notes.trim() ? { notes: payment.notes.trim() } : {}),
@@ -267,6 +293,30 @@ export function MemberForm({
         />
       </Card>
 
+      <Card icon="phone" title="Emergency Contact" subtitle="Optional — who to reach in an emergency.">
+        <TextField
+          label="Contact Name"
+          placeholder="e.g. parent / spouse"
+          autoCapitalize="words"
+          {...field('emergency_contact_name')}
+        />
+        <TextField
+          label="Contact Mobile"
+          icon="phone"
+          placeholder="Mobile number"
+          keyboardType="phone-pad"
+          maxLength={16}
+          {...field('emergency_contact_phone')}
+          onChangeText={(text) => update('emergency_contact_phone', text.replace(/[^\d+]/g, ''))}
+        />
+        <TextField
+          label="Address"
+          icon="location"
+          placeholder="Home address"
+          {...field('emergency_contact_address')}
+        />
+      </Card>
+
       <Card
         icon="plans"
         title={member ? 'Membership' : 'Plan Details'}
@@ -292,16 +342,35 @@ export function MemberForm({
         ) : null}
 
         {planChanged && plan ? (
-          <TextField
-            label="Start Date"
-            required
-            icon="calendar"
-            placeholder="YYYY-MM-DD"
-            keyboardType="number-pad"
-            maxLength={10}
-            {...field('start_date')}
-            onChangeText={(text) => update('start_date', formatDateInput(text))}
-          />
+          <>
+            <TextField
+              label="Start Date"
+              required
+              icon="calendar"
+              placeholder="YYYY-MM-DD"
+              keyboardType="number-pad"
+              maxLength={10}
+              {...field('start_date')}
+              onChangeText={(text) => update('start_date', formatDateInput(text))}
+            />
+            <TextField
+              label="Discount (₹)"
+              icon="money"
+              placeholder="0"
+              keyboardType="decimal-pad"
+              value={discount}
+              onChangeText={(text) => {
+                setDiscount(text.replace(/[^\d.]/g, ''));
+                setErrors((current) => ({ ...current, discount: undefined }));
+              }}
+              error={errors.discount}
+              hint={
+                discount.trim() && payable !== undefined
+                  ? ({ text: `Payable ${formatMoney(payable)}`, tone: 'muted' } as const)
+                  : undefined
+              }
+            />
+          </>
         ) : null}
       </Card>
 
@@ -322,7 +391,7 @@ export function MemberForm({
             <TextField
               label="Amount Received (₹)"
               icon="money"
-              placeholder={plan ? String(Number(plan.amount)) : 'Amount'}
+              placeholder={payable !== undefined ? String(payable) : 'Amount'}
               keyboardType="decimal-pad"
               value={payment.amount}
               onChangeText={(text) => {
@@ -396,17 +465,46 @@ export function MemberForm({
 function CurrentMembership({ member }: { member: Member }) {
   const theme = useTheme();
   const membership = member.membership!;
+  const balance = Number(membership.balance);
 
   return (
     <View style={[styles.current, { backgroundColor: theme.background, borderColor: theme.border }]}>
-      <View style={styles.flex}>
-        <Text style={[styles.currentLabel, { color: theme.textSecondary }]}>Current plan</Text>
-        <Text style={[styles.currentPlan, { color: theme.text }]}>{membership.membership_plan.name}</Text>
-        <Text style={[styles.currentDates, { color: theme.textSecondary }]}>
-          {formatDate(membership.start_date)} – {formatDate(membership.end_date)}
-        </Text>
+      <View style={styles.currentHeader}>
+        <View style={styles.flex}>
+          <Text style={[styles.currentLabel, { color: theme.textSecondary }]}>Current plan</Text>
+          <Text style={[styles.currentPlan, { color: theme.text }]}>{membership.membership_plan.name}</Text>
+          <Text style={[styles.currentDates, { color: theme.textSecondary }]}>
+            {formatDate(membership.start_date)} – {formatDate(membership.end_date)}
+          </Text>
+        </View>
+        <StatusPill {...membershipStatus(member)} />
       </View>
-      <StatusPill {...membershipStatus(member)} />
+
+      <View style={[styles.duesRow, { borderColor: theme.border }]}>
+        <Dues label="Payable" value={formatMoney(membership.net_payable)} color={theme.text} />
+        <Dues label="Paid" value={formatMoney(membership.amount_paid)} color={theme.success} />
+        <Dues
+          label="Balance"
+          value={formatMoney(membership.balance)}
+          color={balance > 0 ? theme.danger : theme.textSecondary}
+        />
+      </View>
+
+      {Number(membership.discount) > 0 ? (
+        <Text style={[styles.discountNote, { color: theme.textSecondary }]}>
+          Includes {formatMoney(membership.discount)} discount on {formatMoney(membership.amount)}.
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
+function Dues({ label, value, color }: { label: string; value: string; color: string }) {
+  const theme = useTheme();
+  return (
+    <View style={styles.flex}>
+      <Text style={[styles.duesLabel, { color: theme.textSecondary }]}>{label}</Text>
+      <Text style={[styles.duesValue, { color }]}>{value}</Text>
     </View>
   );
 }
@@ -508,12 +606,33 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   current: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: Spacing.three,
     padding: Spacing.three,
     borderWidth: 1,
     borderRadius: Radius.md,
+  },
+  currentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+  },
+  duesRow: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: Spacing.two + 2,
+  },
+  duesLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  duesValue: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  discountNote: {
+    fontSize: 12,
   },
   currentLabel: {
     fontSize: 12,

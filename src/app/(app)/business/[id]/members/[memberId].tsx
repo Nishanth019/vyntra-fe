@@ -24,7 +24,7 @@ export default function EditMemberScreen() {
 
   if (!data) return <LoadingState error={error} onRetry={retry} />;
   const { member } = data;
-  const attendanceParams = { id: account.id, memberId: member.id };
+  const memberParams = { id: account.id, memberId: member.id };
 
   return (
     <>
@@ -39,26 +39,52 @@ export default function EditMemberScreen() {
           router.back();
         }}
         footer={
-          <Card icon="checkIn" title="Attendance">
-            <View style={styles.row}>
-              {member.is_active ? (
+          <>
+            <Card icon="money" title="Payments">
+              <View style={styles.row}>
+                {member.is_active ? (
+                  <Button
+                    title="Record Payment"
+                    icon="money"
+                    variant="secondary"
+                    style={styles.flex}
+                    onPress={() =>
+                      router.push({ pathname: '/business/[id]/members/payment', params: memberParams })
+                    }
+                  />
+                ) : null}
                 <Button
-                  title="Mark"
-                  icon="check"
+                  title="History"
+                  icon="report"
                   variant="secondary"
                   style={styles.flex}
-                  onPress={() => router.push({ pathname: '/business/[id]/attendance/mark', params: attendanceParams })}
+                  onPress={() =>
+                    router.push({ pathname: '/business/[id]/members/history', params: memberParams })
+                  }
                 />
-              ) : null}
-              <Button
-                title="History"
-                icon="report"
-                variant="secondary"
-                style={styles.flex}
-                onPress={() => router.push({ pathname: '/business/[id]/attendance/report', params: attendanceParams })}
-              />
-            </View>
-          </Card>
+              </View>
+            </Card>
+            <Card icon="checkIn" title="Attendance">
+              <View style={styles.row}>
+                {member.is_active ? (
+                  <Button
+                    title="Mark"
+                    icon="check"
+                    variant="secondary"
+                    style={styles.flex}
+                    onPress={() => router.push({ pathname: '/business/[id]/attendance/mark', params: memberParams })}
+                  />
+                ) : null}
+                <Button
+                  title="History"
+                  icon="report"
+                  variant="secondary"
+                  style={styles.flex}
+                  onPress={() => router.push({ pathname: '/business/[id]/attendance/report', params: memberParams })}
+                />
+              </View>
+            </Card>
+          </>
         }
         onToggleActive={async () => {
           if (member.is_active) {

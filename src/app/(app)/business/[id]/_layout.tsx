@@ -25,6 +25,8 @@ export default function BusinessLayout() {
         <Stack.Screen name="members/index" options={{ title: 'Members' }} />
         <Stack.Screen name="members/new" options={{ title: 'Add Member' }} />
         <Stack.Screen name="members/[memberId]" options={{ title: 'Member' }} />
+        <Stack.Screen name="members/payment" options={{ title: 'Record Payment' }} />
+        <Stack.Screen name="members/history" options={{ title: 'Membership History' }} />
         <Stack.Screen name="plans/index" options={{ title: 'Membership Plans' }} />
         <Stack.Screen name="plans/new" options={{ title: 'Add Plan' }} />
         <Stack.Screen name="plans/[planId]" options={{ title: 'Edit Plan' }} />

@@ -100,15 +100,55 @@ export type PaymentInput = {
   notes?: string;
 };
 
-/** A member's current membership, with the payments recorded against it (newest first). */
+/** A standalone payment row (from the /payments/ endpoint); carries its member/membership refs. */
+export type PaymentRecord = Payment & {
+  member_id: number;
+  membership_id: number | null;
+  is_active: boolean;
+};
+
+/** Record a recurring payment. `membership_id` defaults to the member's active membership. */
+export type PaymentRecordInput = {
+  member_id: number;
+  amount: string;
+  payment_method: string;
+  membership_id?: number;
+  payment_date?: string;
+  transaction_reference?: string;
+  notes?: string;
+};
+
+export type PaymentQuery = {
+  business_account_id: number;
+  member_id?: number;
+  payment_date_from?: string;
+  payment_date_to?: string;
+  page?: number;
+};
+
+/**
+ * A membership, with its dues breakdown and the payments recorded against it (newest first).
+ * `net_payable = amount - discount`; `balance = net_payable - amount_paid` (the dues).
+ */
 export type Membership = {
   id: number;
   membership_plan: MembershipPlan;
   start_date: string;
   end_date: string;
   amount: string;
+  discount: string;
+  net_payable: string;
+  amount_paid: string;
+  balance: string;
   is_active: boolean;
   payments: Payment[];
+};
+
+/** Gym-specific profile: emergency contact and address (all optional). */
+export type GymDetails = {
+  emergency_contact_name: string | null;
+  emergency_contact_phone: string | null;
+  emergency_contact_address: string | null;
 };
 
 export type Member = {
@@ -121,6 +161,7 @@ export type Member = {
   date_of_birth: string | null;
   gender: string | null;
   is_active: boolean;
+  gym_details: GymDetails | null;
   membership: Membership | null;
   created_at: string;
   updated_at: string;
@@ -129,6 +170,7 @@ export type Member = {
 /**
  * Create needs `membership_plan_id`. On update, a different plan replaces the current membership
  * (starting `start_date`, default today) and `payment` is recorded against the current membership.
+ * `discount` applies to the membership being created (signup / plan change).
  */
 export type MemberInput = {
   member_code?: string;
@@ -141,7 +183,19 @@ export type MemberInput = {
   is_active?: boolean;
   membership_plan_id?: number;
   start_date?: string;
+  discount?: string;
   payment?: PaymentInput;
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  emergency_contact_address?: string;
+};
+
+/** Collection totals and outstanding dues for a business. */
+export type CollectionsSummary = {
+  today_collection: string;
+  month_collection: string;
+  outstanding_dues: string;
+  period_collection?: string;
 };
 
 export type Staff = {
@@ -229,6 +283,7 @@ export type MemberQuery = {
   is_active?: boolean;
   end_date_from?: string;
   end_date_to?: string;
+  has_dues?: boolean;
   page?: number;
 };
 
@@ -360,6 +415,21 @@ export const api = {
     request<Member>(withQuery('/members/', { business_account_id, member_id }), { method: 'PUT', body: input }),
   deactivateMember: (business_account_id: number, member_id: number) =>
     request<null>(withQuery('/members/', { business_account_id, member_id }), { method: 'DELETE' }),
+
+  // Full membership history (active + past) for a member, each with its payments and dues.
+  memberships: (business_account_id: number, member_id: number, page?: number) =>
+    request<Paginated<Membership>>(withQuery('/memberships/', { business_account_id, member_id, page })),
+
+  // Standalone payments — record recurring payments and list a member's payment history.
+  payments: (query: PaymentQuery) => request<Paginated<PaymentRecord>>(withQuery('/payments/', query)),
+  recordPayment: (business_account_id: number, input: PaymentRecordInput) =>
+    request<PaymentRecord>(withQuery('/payments/', { business_account_id }), { method: 'POST', body: input }),
+  voidPayment: (business_account_id: number, payment_id: number) =>
+    request<null>(withQuery('/payments/', { business_account_id, payment_id }), { method: 'DELETE' }),
+
+  // Collection totals (today / this month / optional period) and outstanding dues.
+  collections: (business_account_id: number, period_from?: string, period_to?: string) =>
+    request<CollectionsSummary>(withQuery('/collections/', { business_account_id, period_from, period_to })),
 
   attendance: (query: AttendanceQuery) => request<Paginated<Attendance>>(withQuery('/member-attendance/', query)),
   markAttendance: (business_account_id: number, input: AttendanceInput) =>
