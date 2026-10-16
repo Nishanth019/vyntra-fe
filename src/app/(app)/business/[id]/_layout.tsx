@@ -20,13 +20,15 @@ export default function BusinessLayout() {
   return (
     <BusinessContext value={{ account, setAccount }}>
       <Stack screenOptions={stackOptions}>
-        <Stack.Screen name="index" options={{ title: account.name }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false, title: account.name }} />
         <Stack.Screen name="settings" options={{ title: 'Organisation Settings' }} />
-        <Stack.Screen name="members/index" options={{ title: 'Members' }} />
         <Stack.Screen name="members/new" options={{ title: 'Add Member' }} />
         <Stack.Screen name="members/[memberId]" options={{ title: 'Member' }} />
         <Stack.Screen name="members/payment" options={{ title: 'Record Payment' }} />
-        <Stack.Screen name="members/history" options={{ title: 'Membership History' }} />
+        <Stack.Screen name="members/history" options={{ title: 'Member History' }} />
+        <Stack.Screen name="members/plan" options={{ title: 'Membership' }} />
+        <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
+        <Stack.Screen name="notification-settings" options={{ title: 'Notification Settings' }} />
         <Stack.Screen name="plans/index" options={{ title: 'Membership Plans' }} />
         <Stack.Screen name="plans/new" options={{ title: 'Add Plan' }} />
         <Stack.Screen name="plans/[planId]" options={{ title: 'Edit Plan' }} />

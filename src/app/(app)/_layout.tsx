@@ -3,12 +3,14 @@ import { StatusBar } from 'expo-status-bar';
 
 import { HeaderButton } from '@/components/ui/header-button';
 import { useStackOptions } from '@/hooks/use-stack-options';
+import { usePushNotifications } from '@/lib/push';
 import { useSession } from '@/lib/session';
 
 /** Screens for a logged-in admin. The root layout only renders this group when there's a session. */
 export default function AppLayout() {
   const stackOptions = useStackOptions();
-  const { signOut } = useSession();
+  const { admin, signOut } = useSession();
+  usePushNotifications(Boolean(admin));
 
   const logout = () => <HeaderButton icon="logout" label="Log out" onPress={signOut} />;
 

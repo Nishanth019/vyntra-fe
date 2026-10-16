@@ -10,14 +10,14 @@ import { useTheme } from '@/hooks/use-theme';
 
 type Channel = { icon: IconName; tone: Tone; title: string; detail: string; url: string };
 
-// Configured in .env; a channel without a value is hidden.
+// Configured in .env; a channel without a value is hidden. Several phones can be comma-separated.
 const EMAIL = process.env.EXPO_PUBLIC_SUPPORT_EMAIL;
-const PHONE = process.env.EXPO_PUBLIC_SUPPORT_PHONE;
+const PHONES = (process.env.EXPO_PUBLIC_SUPPORT_PHONE ?? '').split(',').map((phone) => phone.trim()).filter(Boolean);
 const WHATSAPP = process.env.EXPO_PUBLIC_SUPPORT_WHATSAPP;
 
 const CHANNELS: Channel[] = [
   EMAIL && { icon: 'mail', tone: 'primary', title: 'Email us', detail: EMAIL, url: `mailto:${EMAIL}` },
-  PHONE && { icon: 'phone', tone: 'success', title: 'Call us', detail: PHONE, url: `tel:${PHONE}` },
+  ...PHONES.map((phone) => ({ icon: 'phone', tone: 'success', title: 'Call us', detail: phone, url: `tel:${phone}` })),
   WHATSAPP && {
     icon: 'chat',
     tone: 'success',
@@ -39,7 +39,7 @@ export default function ContactScreen() {
           />
         </Card>
       ) : (
-        CHANNELS.map((channel) => <ChannelRow key={channel.title} channel={channel} />)
+        CHANNELS.map((channel) => <ChannelRow key={channel.url} channel={channel} />)
       )}
     </Screen>
   );

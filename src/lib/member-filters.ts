@@ -29,12 +29,12 @@ function endingBetween(today: Date, from?: number, to?: number) {
 
 export const MEMBER_FILTERS: MemberFilter[] = [
   { key: 'all', label: 'All Members', query: () => ({}) },
-  { key: 'live', label: 'Live Memberships', query: (today) => endingBetween(today, 0) },
-  { key: 'expired', label: 'Expired Memberships', query: (today) => endingBetween(today, undefined, -1) },
+  { key: 'live', label: 'Live Memberships', query: () => ({ status: 'live' }) },
+  { key: 'expired', label: 'Expired Memberships', query: () => ({ status: 'expired' }) },
   { key: 'expiring3', label: 'Expiring (0–3 Days)', query: (today) => endingBetween(today, 0, 3) },
   { key: 'expiring7', label: 'Expiring (4–7 Days)', query: (today) => endingBetween(today, 4, 7) },
   { key: 'expiring15', label: 'Expiring (8–15 Days)', query: (today) => endingBetween(today, 8, 15) },
-  { key: 'dues', label: 'Dues Pending', query: () => ({ is_active: true, has_dues: true }) },
+  { key: 'dues', label: 'Dues Pending', query: () => ({ has_dues: true }) },
   { key: 'inactive', label: 'Inactive Members', query: () => ({ is_active: false }) },
 ];
 
@@ -42,14 +42,11 @@ export function isMemberFilterKey(value: unknown): value is MemberFilterKey {
   return MEMBER_FILTERS.some((filter) => filter.key === value);
 }
 
-/** Member count for every filter. Each is one request, since the list's `count` is the total across pages. */
-export async function fetchMemberCounts(business_account_id: number) {
-  const today = new Date();
-  const pages = await Promise.all(
-    MEMBER_FILTERS.map((filter) => api.members({ business_account_id, ...filter.query(today) })),
-  );
-  return Object.fromEntries(MEMBER_FILTERS.map((filter, i) => [filter.key, pages[i].count])) as Record<
-    MemberFilterKey,
-    number
-  >;
+/** Shown on the Expired and Inactive lists. */
+export const AUTO_INACTIVE_NOTE =
+  'Expired members move to Inactive automatically 1 week after their plan ends. Renew or reactivate them anytime when they come back.';
+
+/** Member count for every filter (one request). */
+export async function fetchMemberCounts(business_account_id: number): Promise<Record<MemberFilterKey, number>> {
+  return (await api.dashboard(business_account_id)).members;
 }

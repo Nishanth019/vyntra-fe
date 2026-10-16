@@ -7,11 +7,15 @@ import { daysUntil, formatDate } from '@/lib/dates';
 
 /** Where a member's membership stands today, e.g. "Expired" or "3 days left". */
 export function membershipStatus(member: Member): { label: string; tone: Tone } {
-  if (!member.is_active) return { label: 'Inactive', tone: 'neutral' };
-  if (!member.membership) return { label: 'No plan', tone: 'neutral' };
+  if (member.status === 'inactive') return { label: 'Inactive', tone: 'neutral' };
+  if (member.status === 'no_plan' || !member.membership) return { label: 'No plan', tone: 'neutral' };
+  if (member.status === 'expired') return { label: 'Expired', tone: 'danger' };
+  if (member.status === 'upcoming') {
+    return { label: `Starts ${formatDate(member.membership.start_date)}`, tone: 'accent' };
+  }
 
+  // Live. For an early renewal the active membership is the next one, so this counts to its end.
   const days = daysUntil(member.membership.end_date);
-  if (days < 0) return { label: 'Expired', tone: 'danger' };
   if (days === 0) return { label: 'Ends today', tone: 'warning' };
   if (days <= 7) return { label: `${days} day${days === 1 ? '' : 's'} left`, tone: 'warning' };
   return { label: `Till ${formatDate(member.membership.end_date)}`, tone: 'success' };

@@ -1,6 +1,6 @@
-import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { router, Tabs, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, FlatList, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { MemberRow } from '@/components/member-row';
 import { Button } from '@/components/ui/button';
@@ -9,13 +9,19 @@ import { ErrorBanner } from '@/components/ui/error-banner';
 import { HeaderButton } from '@/components/ui/header-button';
 import { EmptyState } from '@/components/ui/states';
 import { TextField } from '@/components/ui/text-field';
-import { Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 import { usePaginatedList } from '@/hooks/use-paginated-list';
 import { useResource } from '@/hooks/use-resource';
 import { useTheme } from '@/hooks/use-theme';
 import { api } from '@/lib/api';
 import { useBusiness } from '@/lib/business';
-import { fetchMemberCounts, isMemberFilterKey, MEMBER_FILTERS, type MemberFilterKey } from '@/lib/member-filters';
+import {
+  AUTO_INACTIVE_NOTE,
+  fetchMemberCounts,
+  isMemberFilterKey,
+  MEMBER_FILTERS,
+  type MemberFilterKey,
+} from '@/lib/member-filters';
 
 export default function MembersScreen() {
   const theme = useTheme();
@@ -26,6 +32,12 @@ export default function MembersScreen() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [search, setSearch] = useState('');
+
+  // Home tiles and notifications open this tab with a filter.
+  useEffect(() => {
+    if (isMemberFilterKey(params.filter)) selectFilter(params.filter);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.filter]);
 
   const fetchCounts = useCallback(() => fetchMemberCounts(account.id), [account.id]);
   const { data: counts, refresh: refreshCounts } = useResource(fetchCounts);
@@ -65,7 +77,7 @@ export default function MembersScreen() {
 
   return (
     <>
-      <Stack.Screen
+      <Tabs.Screen
         options={{
           headerRight: () => (
             <View style={styles.headerActions}>
@@ -105,6 +117,12 @@ export default function MembersScreen() {
           </View>
         ) : null}
       </View>
+
+      {filter === 'expired' || filter === 'inactive' ? (
+        <View style={[styles.note, { backgroundColor: theme.primarySoft }]}>
+          <Text style={[styles.noteText, { color: theme.primary }]}>{AUTO_INACTIVE_NOTE}</Text>
+        </View>
+      ) : null}
 
       {list.error ? (
         <View style={styles.error}>
@@ -175,6 +193,16 @@ const styles = StyleSheet.create({
   error: {
     padding: Spacing.three,
     paddingBottom: 0,
+  },
+  note: {
+    marginHorizontal: Spacing.three,
+    marginTop: Spacing.three,
+    padding: Spacing.three,
+    borderRadius: Radius.md,
+  },
+  noteText: {
+    fontSize: 13,
+    lineHeight: 19,
   },
   loader: {
     marginTop: Spacing.six,

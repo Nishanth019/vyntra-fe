@@ -151,6 +151,9 @@ export type GymDetails = {
   emergency_contact_address: string | null;
 };
 
+/** Where a member stands today. `upcoming`: their only current plan starts later. */
+export type MemberStatus = 'live' | 'upcoming' | 'expired' | 'no_plan' | 'inactive';
+
 export type Member = {
   id: number;
   member_code: string;
@@ -162,16 +165,16 @@ export type Member = {
   gender: string | null;
   is_active: boolean;
   gym_details: GymDetails | null;
+  /** The latest membership (current, upcoming or last expired). */
   membership: Membership | null;
+  status: MemberStatus;
+  /** Unpaid balance across all memberships, past ones included. */
+  total_due: string;
   created_at: string;
   updated_at: string;
 };
 
-/**
- * Create needs `membership_plan_id`. On update, a different plan replaces the current membership
- * (starting `start_date`, default today) and `payment` is recorded against the current membership.
- * `discount` applies to the membership being created (signup / plan change).
- */
+/** Create needs `membership_plan_id` (+ optional start date, discount and first payment). */
 export type MemberInput = {
   member_code?: string;
   first_name?: string;
@@ -281,6 +284,7 @@ export type MemberQuery = {
   search?: string;
   member_code?: string;
   is_active?: boolean;
+  status?: 'live' | 'expired';
   end_date_from?: string;
   end_date_to?: string;
   has_dues?: boolean;
@@ -292,6 +296,103 @@ export type AttendanceQuery = {
   attendance_date?: string;
   member_id?: number;
   page?: number;
+};
+
+/** Renew (any plan; starts after the current one ends) or change plan mid-way (starts today). */
+export type MembershipActionInput = {
+  action: 'renew' | 'change_plan';
+  member_id: number;
+  membership_plan_id: number;
+  start_date?: string;
+  discount?: string;
+  payment?: PaymentInput;
+};
+
+/** Correct the current membership, or extend it by some days (e.g. a freeze). */
+export type MembershipUpdateInput = {
+  start_date?: string;
+  discount?: string;
+  extend_days?: number;
+  reason?: string;
+};
+
+/** One line of a member's history. `created_by` is null when the system did it. */
+export type MemberActivity = {
+  id: number;
+  activity_type: string;
+  description: string;
+  membership_id: number | null;
+  payment_id: number | null;
+  created_by: string | null;
+  created_at: string;
+};
+
+export type MemberCounts = Record<
+  'all' | 'live' | 'expired' | 'expiring3' | 'expiring7' | 'expiring15' | 'dues' | 'inactive',
+  number
+>;
+
+export type Dashboard = {
+  members: MemberCounts;
+  collections: CollectionsSummary;
+  checked_in_today: number;
+  plans: number;
+  unread_notifications: number;
+};
+
+type Compared<T> = { value: T; previous: T };
+
+export type Insights = {
+  date_from: string;
+  date_to: string;
+  summary: {
+    collections: Compared<string>;
+    new_members: Compared<number>;
+    renewals: Compared<number>;
+    expired: Compared<number>;
+    attendance: Compared<number>;
+  };
+  /** % of plans that ended in the period and were renewed; null when none ended. */
+  renewal_rate: number | null;
+  previous_renewal_rate: number | null;
+  live_members: number;
+  outstanding_dues: string;
+  /** Days for up to a month, weeks up to ~4 months, months beyond. */
+  series: {
+    label: string;
+    collections: string;
+    new_members: number;
+    renewals: number;
+    expired: number;
+    attendance: number;
+  }[];
+  payment_methods: { method: string; total: string }[];
+  plans: { name: string; count: number; revenue: string }[];
+  top_dues: { member_id: number; name: string; amount: string }[];
+};
+
+export type AppNotification = {
+  id: number;
+  notification_type: string;
+  title: string;
+  message: string;
+  /** What to open on tap: a member list filter or a member. */
+  member_filter: string | null;
+  member_id: number | null;
+  notification_date: string;
+  is_read: boolean;
+  created_at: string;
+};
+
+export type NotificationSettings = {
+  morning_summary: boolean;
+  expiry_reminders: boolean;
+  expired_followups: boolean;
+  dues_reminders: boolean;
+  no_show_alerts: boolean;
+  birthday_alerts: boolean;
+  activity_alerts: boolean;
+  evening_summary: boolean;
 };
 
 export type SignupInput = {
@@ -390,6 +491,7 @@ export const api = {
   deleteBusinessAccount: (id: number) => request<null>(`/business-accounts/${id}/`, { method: 'DELETE' }),
 
   updateProfile: (input: ProfileInput) => request<Admin>('/me/', { method: 'PUT', body: input }),
+  deleteAccount: () => request<null>('/me/', { method: 'DELETE' }),
   changePassword: (current_password: string, new_password: string) =>
     request<{ result: string }>('/me/password/', { method: 'PUT', body: { current_password, new_password } }),
 
@@ -419,6 +521,32 @@ export const api = {
   // Full membership history (active + past) for a member, each with its payments and dues.
   memberships: (business_account_id: number, member_id: number, page?: number) =>
     request<Paginated<Membership>>(withQuery('/memberships/', { business_account_id, member_id, page })),
+  membershipAction: (business_account_id: number, input: MembershipActionInput) =>
+    request<Member>(withQuery('/memberships/', { business_account_id }), { method: 'POST', body: input }),
+  updateMembership: (business_account_id: number, membership_id: number, input: MembershipUpdateInput) =>
+    request<Member>(withQuery('/memberships/', { business_account_id, membership_id }), { method: 'PUT', body: input }),
+  memberActivity: (business_account_id: number, member_id: number, page?: number) =>
+    request<Paginated<MemberActivity>>(withQuery('/member-activity/', { business_account_id, member_id, page })),
+
+  dashboard: (business_account_id: number) => request<Dashboard>(withQuery('/dashboard/', { business_account_id })),
+  insights: (business_account_id: number, date_from: string, date_to: string) =>
+    request<Insights>(withQuery('/insights/', { business_account_id, date_from, date_to })),
+
+  notifications: (business_account_id: number, page?: number) =>
+    request<Paginated<AppNotification>>(withQuery('/notifications/', { business_account_id, page })),
+  /** Marks one notification read, or all of them when `notification_id` is omitted. */
+  markNotificationsRead: (business_account_id: number, notification_id?: number) =>
+    request<null>(withQuery('/notifications/', { business_account_id, notification_id }), { method: 'PUT' }),
+  notificationSettings: (business_account_id: number) =>
+    request<NotificationSettings>(withQuery('/notification-settings/', { business_account_id })),
+  updateNotificationSettings: (business_account_id: number, input: Partial<NotificationSettings>) =>
+    request<NotificationSettings>(withQuery('/notification-settings/', { business_account_id }), {
+      method: 'PUT',
+      body: input,
+    }),
+  registerDevice: (push_token: string, platform: string) =>
+    request<null>('/devices/', { method: 'POST', body: { push_token, platform } }),
+  unregisterDevice: (push_token: string) => request<null>('/devices/', { method: 'DELETE', body: { push_token } }),
 
   // Standalone payments — record recurring payments and list a member's payment history.
   payments: (query: PaymentQuery) => request<Paginated<PaymentRecord>>(withQuery('/payments/', query)),

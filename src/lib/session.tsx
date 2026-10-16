@@ -1,6 +1,7 @@
 import { createContext, use, useEffect, useState, type PropsWithChildren } from 'react';
 
 import { api, ApiError, setAuthToken, setUnauthorizedHandler, type Admin, type AuthResponse } from '@/lib/api';
+import { getRegisteredPushToken } from '@/lib/push';
 import { storage } from '@/lib/storage';
 import { loadThemePreference } from '@/lib/theme-preference';
 
@@ -29,6 +30,9 @@ export function SessionProvider({ children }: PropsWithChildren) {
   const [isLoading, setIsLoading] = useState(true);
 
   function signOut() {
+    // Sent before the token is cleared, so this phone stops getting this admin's notifications.
+    const pushToken = getRegisteredPushToken();
+    if (pushToken) api.unregisterDevice(pushToken).catch(() => {});
     setAuthToken(null);
     setAdmin(null);
     storage.remove(TOKEN_KEY);

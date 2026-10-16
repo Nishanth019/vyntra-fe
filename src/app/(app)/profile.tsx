@@ -1,3 +1,4 @@
+import * as WebBrowser from 'expo-web-browser';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -11,7 +12,9 @@ import { TextField } from '@/components/ui/text-field';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { api, ApiError, type Admin } from '@/lib/api';
+import { confirm } from '@/lib/confirm';
 import { initials } from '@/lib/format';
+import { ACCOUNT_DELETION_URL, PRIVACY_POLICY_URL } from '@/lib/links';
 import { useSession } from '@/lib/session';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -27,7 +30,48 @@ export default function ProfileScreen() {
       <PersonalInformation admin={admin} />
       <SecuritySection />
       <Button title="Log Out" icon="logout" variant="danger" onPress={signOut} />
+      <DeleteAccount onDeleted={signOut} />
     </Screen>
+  );
+}
+
+/** Play Store requires in-app account deletion. */
+function DeleteAccount({ onDeleted }: { onDeleted: () => void }) {
+  const theme = useTheme();
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState('');
+
+  async function remove() {
+    const ok = await confirm(
+      'Delete your account?',
+      "You won't be able to log in again and your access to every business is removed. Gym records you added stay with the gym.",
+      'Delete Account',
+    );
+    if (!ok) return;
+    setDeleting(true);
+    try {
+      await api.deleteAccount();
+      onDeleted();
+    } catch (e) {
+      if (!(e instanceof ApiError)) throw e;
+      setError(e.message);
+      setDeleting(false);
+    }
+  }
+
+  return (
+    <Card icon="warning" title="Delete Account" subtitle="Permanently delete your Vyntra login." tone="danger">
+      {error ? <ErrorBanner message={error} /> : null}
+      <Button title="Delete My Account" icon="block" variant="danger" loading={deleting} onPress={remove} />
+      <View style={styles.links}>
+        <Pressable accessibilityRole="link" onPress={() => WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL)}>
+          <Text style={[styles.link, { color: theme.danger }]}>Privacy Policy</Text>
+        </Pressable>
+        <Pressable accessibilityRole="link" onPress={() => WebBrowser.openBrowserAsync(ACCOUNT_DELETION_URL)}>
+          <Text style={[styles.link, { color: theme.danger }]}>What gets deleted</Text>
+        </Pressable>
+      </View>
+    </Card>
   );
 }
 
@@ -294,6 +338,16 @@ function SecuritySection() {
 }
 
 const styles = StyleSheet.create({
+  links: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: Spacing.four,
+  },
+  link: {
+    fontSize: 14,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
   flex: {
     flex: 1,
   },

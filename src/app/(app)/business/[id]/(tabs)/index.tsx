@@ -1,8 +1,8 @@
-import { router, Stack, type Href } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { router, Tabs, type Href } from 'expo-router';
+import { useCallback } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { SideMenu } from '@/components/side-menu';
+import { NotificationBell } from '@/components/notification-bell';
 import { Button } from '@/components/ui/button';
 import { ErrorBanner } from '@/components/ui/error-banner';
 import { HeaderButton } from '@/components/ui/header-button';
@@ -15,9 +15,8 @@ import { useResource } from '@/hooks/use-resource';
 import { useTheme } from '@/hooks/use-theme';
 import { api } from '@/lib/api';
 import { useBusiness } from '@/lib/business';
-import { toISODate } from '@/lib/dates';
 import { formatMoney } from '@/lib/format';
-import { fetchMemberCounts, type MemberFilterKey } from '@/lib/member-filters';
+import { type MemberFilterKey } from '@/lib/member-filters';
 import { useSession } from '@/lib/session';
 
 type Tile = {
@@ -43,17 +42,8 @@ export default function DashboardScreen() {
   const theme = useTheme();
   const { admin } = useSession();
   const { account } = useBusiness();
-  const [menuOpen, setMenuOpen] = useState(false);
 
-  const fetchStats = useCallback(async () => {
-    const [members, attendance, plans, collections] = await Promise.all([
-      fetchMemberCounts(account.id),
-      api.attendance({ business_account_id: account.id, attendance_date: toISODate(new Date()) }),
-      api.plans(account.id),
-      api.collections(account.id),
-    ]);
-    return { members, checkedInToday: attendance.count, plans: plans.count, collections };
-  }, [account.id]);
+  const fetchStats = useCallback(() => api.dashboard(account.id), [account.id]);
   const { data: stats, error, refreshing, refresh, retry } = useResource(fetchStats);
 
   const params = { id: account.id };
@@ -63,15 +53,20 @@ export default function DashboardScreen() {
   });
 
   const header = (
-    <Stack.Screen
+    <Tabs.Screen
       options={{
-        headerLeft: () => <HeaderButton icon="menu" label="Open menu" onPress={() => setMenuOpen(true)} />,
         headerRight: () => (
-          <HeaderButton
-            icon="personAdd"
-            label="Add member"
-            onPress={() => router.push({ pathname: '/business/[id]/members/new', params })}
-          />
+          <View style={styles.headerActions}>
+            <NotificationBell
+              unread={stats?.unread_notifications ?? 0}
+              onPress={() => router.push({ pathname: '/business/[id]/notifications', params })}
+            />
+            <HeaderButton
+              icon="personAdd"
+              label="Add member"
+              onPress={() => router.push({ pathname: '/business/[id]/members/new', params })}
+            />
+          </View>
         ),
       }}
     />
@@ -96,7 +91,7 @@ export default function DashboardScreen() {
     { label: 'Expiring (8–15 Days)', value: members.expiring15, icon: 'hourglass', tone: 'primary', href: membersHref('expiring15') },
     {
       label: 'Checked In Today',
-      value: stats.checkedInToday,
+      value: stats.checked_in_today,
       icon: 'checkIn',
       tone: 'success',
       href: { pathname: '/business/[id]/attendance', params },
@@ -120,7 +115,6 @@ export default function DashboardScreen() {
   return (
     <>
       {header}
-      <SideMenu visible={menuOpen} onClose={() => setMenuOpen(false)} />
 
       <Screen onRefresh={refresh} refreshing={refreshing} maxWidth={720}>
         <View style={[styles.hero, { backgroundColor: theme.primary }]}>
@@ -185,7 +179,7 @@ function StatTile({ tile }: { tile: Tile }) {
       accessibilityRole={href ? 'button' : undefined}
       accessibilityLabel={`${tile.label}: ${tile.value}`}
       disabled={!href}
-      onPress={() => href && router.push(href)}
+      onPress={() => href && router.navigate(href)}
       style={({ pressed }) => [
         styles.tile,
         { backgroundColor: theme.surface, borderColor: theme.border },
@@ -206,6 +200,10 @@ function StatTile({ tile }: { tile: Tile }) {
 }
 
 const styles = StyleSheet.create({
+  headerActions: {
+    flexDirection: 'row',
+    gap: Spacing.three,
+  },
   hero: {
     borderRadius: Radius.lg + 4,
     padding: Spacing.four,

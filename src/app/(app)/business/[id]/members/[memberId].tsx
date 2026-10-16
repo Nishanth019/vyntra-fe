@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { MemberForm } from '@/components/member-form';
+import { MembershipCard } from '@/components/membership-card';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { LoadingState } from '@/components/ui/states';
@@ -16,14 +17,10 @@ export default function EditMemberScreen() {
   const { account } = useBusiness();
   const memberId = Number(useLocalSearchParams<{ memberId: string }>().memberId);
 
-  const fetchFormData = useCallback(async () => {
-    const [member, plans] = await Promise.all([api.member(account.id, memberId), api.plans(account.id)]);
-    return { member, plans: plans.results.filter((plan) => plan.is_active) };
-  }, [account.id, memberId]);
-  const { data, setData, error, retry } = useResource(fetchFormData);
+  const fetchMember = useCallback(() => api.member(account.id, memberId), [account.id, memberId]);
+  const { data: member, setData: setMember, error, retry } = useResource(fetchMember);
 
-  if (!data) return <LoadingState error={error} onRetry={retry} />;
-  const { member } = data;
+  if (!member) return <LoadingState error={error} onRetry={retry} />;
   const memberParams = { id: account.id, memberId: member.id };
 
   return (
@@ -33,14 +30,15 @@ export default function EditMemberScreen() {
         // Remount with fresh values after reactivating.
         key={String(member.is_active)}
         member={member}
-        plans={data.plans}
+        plans={[]}
         onSubmit={async (input) => {
           await api.updateMember(account.id, member.id, input);
           router.back();
         }}
+        header={<MembershipCard member={member} />}
         footer={
           <>
-            <Card icon="money" title="Payments">
+            <Card icon="money" title="Payments & History">
               <View style={styles.row}>
                 {member.is_active ? (
                   <Button
@@ -54,8 +52,8 @@ export default function EditMemberScreen() {
                   />
                 ) : null}
                 <Button
-                  title="History"
-                  icon="report"
+                  title="Full History"
+                  icon="history"
                   variant="secondary"
                   style={styles.flex}
                   onPress={() =>
@@ -91,7 +89,7 @@ export default function EditMemberScreen() {
             await api.deactivateMember(account.id, member.id);
             router.back();
           } else {
-            setData({ ...data, member: await api.updateMember(account.id, member.id, { is_active: true }) });
+            setMember(await api.updateMember(account.id, member.id, { is_active: true }));
           }
         }}
       />

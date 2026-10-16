@@ -1,13 +1,12 @@
 import { router } from 'expo-router';
 import { useEffect, useState, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { StyleSheet, Switch, Text, View } from 'react-native';
 
-import { membershipStatus, StatusPill } from '@/components/status-pill';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { PlanOption } from '@/components/plan-option';
 import { Chip } from '@/components/ui/chip';
 import { ErrorBanner } from '@/components/ui/error-banner';
-import { Icon } from '@/components/ui/icon';
 import { Screen } from '@/components/ui/screen';
 import { TextField } from '@/components/ui/text-field';
 import { Radius, Spacing } from '@/constants/theme';
@@ -15,24 +14,19 @@ import { useTheme } from '@/hooks/use-theme';
 import { api, ApiError, type Member, type MemberInput, type MembershipPlan } from '@/lib/api';
 import { useBusiness } from '@/lib/business';
 import { confirm } from '@/lib/confirm';
-import { formatDate, formatDateInput, isValidISODate, toISODate } from '@/lib/dates';
-import { formatDuration, formatMoney, memberName } from '@/lib/format';
+import { formatDateInput, isValidISODate, toISODate } from '@/lib/dates';
+import { formatMoney, memberName } from '@/lib/format';
+import { PAYMENT_METHODS } from '@/lib/payments';
 
 const GENDERS = ['Male', 'Female', 'Other'];
-const PAYMENT_METHODS = [
-  { value: 'CASH', label: 'Cash' },
-  { value: 'UPI', label: 'UPI' },
-  { value: 'CARD', label: 'Card' },
-  { value: 'BANK_TRANSFER', label: 'Bank' },
-];
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_PATTERN = /^\+?\d{7,15}$/;
 
 type MemberFormProps = {
-  /** The member being edited; omit to add a new one. */
+  /** The member being edited; omit to add a new one. Plans are managed separately when editing. */
   member?: Member;
-  /** Active plans to choose from. */
+  /** Active plans to choose from (new members only). */
   plans: MembershipPlan[];
   /** Pre-filled member ID for a new member. */
   suggestedCode?: string;
@@ -40,6 +34,8 @@ type MemberFormProps = {
   onSubmit: (input: MemberInput) => Promise<void>;
   /** Deactivates (or, when the member is inactive, reactivates) the member. */
   onToggleActive?: () => Promise<void>;
+  /** Shown above the member details, e.g. the membership card. */
+  header?: ReactNode;
   /** Shown below the save button, e.g. attendance shortcuts. */
   footer?: ReactNode;
 };
@@ -50,11 +46,11 @@ export function MemberForm({
   suggestedCode = '',
   onSubmit,
   onToggleActive,
+  header,
   footer,
 }: MemberFormProps) {
   const theme = useTheme();
   const { account } = useBusiness();
-  const currentPlanId = member?.membership?.membership_plan.id ?? null;
 
   const [values, setValues] = useState({
     member_code: member?.member_code ?? suggestedCode,
@@ -69,13 +65,10 @@ export function MemberForm({
     emergency_contact_address: member?.gym_details?.emergency_contact_address ?? '',
   });
   const [gender, setGender] = useState(member?.gender ?? '');
-  const [planId, setPlanId] = useState<number | null>(currentPlanId);
-  // Discount applies to the membership created on signup / plan change.
-  const [discount, setDiscount] = useState(
-    member?.membership?.discount ? String(Number(member.membership.discount)) : '',
-  );
-  // New members usually pay when they join; on edit, recording a payment is opt-in.
-  const [recordPayment, setRecordPayment] = useState(!member);
+  const [planId, setPlanId] = useState<number | null>(null);
+  const [discount, setDiscount] = useState('');
+  // New members usually pay when they join.
+  const [recordPayment, setRecordPayment] = useState(true);
   const [payment, setPayment] = useState({ amount: '', method: 'CASH', reference: '', notes: '' });
 
   const [codeCheck, setCodeCheck] = useState<{ code: string; taken: boolean } | null>(null);
@@ -85,7 +78,6 @@ export function MemberForm({
   const [toggling, setToggling] = useState(false);
 
   const plan = plans.find((item) => item.id === planId);
-  const planChanged = planId !== currentPlanId;
   const code = values.member_code.trim();
   // Amount still payable on the plan after any discount — the default for a new payment.
   const payable = plan ? Math.max(0, Number(plan.amount) - Number(discount || 0)) : undefined;
@@ -123,17 +115,17 @@ export function MemberForm({
     if (values.phone && !PHONE_PATTERN.test(values.phone)) next.phone = 'Enter a valid mobile number.';
     if (values.email && !EMAIL_PATTERN.test(values.email.trim())) next.email = 'Enter a valid email address.';
     if (values.date_of_birth && !isValidISODate(values.date_of_birth)) next.date_of_birth = 'Use the format YYYY-MM-DD.';
-    if (!member && !plan) next.membership_plan_id = 'Choose a plan.';
-    if (planChanged && !isValidISODate(values.start_date)) next.start_date = 'Use the format YYYY-MM-DD.';
-    if (discount.trim() && plan) {
-      const value = Number(discount);
-      if (!(value >= 0)) next.discount = 'Enter a valid discount.';
-      else if (value > Number(plan.amount)) next.discount = "Discount can't exceed the plan amount.";
-    }
-    if (recordPayment) {
-      const amount = Number(payment.amount || payable || member?.membership?.amount || 0);
-      if (!(amount > 0)) next.payment_amount = 'Enter the amount received.';
-      if (member && !member.membership && !planChanged) next.payment_amount = 'Choose a plan to record a payment.';
+    if (!member) {
+      if (!plan) next.membership_plan_id = 'Choose a plan.';
+      if (!isValidISODate(values.start_date)) next.start_date = 'Use the format YYYY-MM-DD.';
+      if (discount.trim() && plan) {
+        const value = Number(discount);
+        if (!(value >= 0)) next.discount = 'Enter a valid discount.';
+        else if (value > Number(plan.amount)) next.discount = "Discount can't exceed the plan amount.";
+      }
+      if (recordPayment && !(Number(payment.amount || payable || 0) > 0)) {
+        next.payment_amount = 'Enter the amount received.';
+      }
     }
     return next;
   }
@@ -175,14 +167,14 @@ export function MemberForm({
       if (member ? value !== (member.gym_details?.[key] ?? '') : value) input[key] = value;
     }
 
-    if (plan && planChanged) {
+    if (!member && plan) {
       input.membership_plan_id = plan.id;
       input.start_date = values.start_date;
       if (discount.trim()) input.discount = Number(discount).toFixed(2);
     }
-    if (recordPayment) {
+    if (!member && recordPayment) {
       input.payment = {
-        amount: Number(payment.amount || payable || member?.membership?.amount).toFixed(2),
+        amount: Number(payment.amount || payable).toFixed(2),
         payment_method: payment.method,
         ...(payment.reference.trim() ? { transaction_reference: payment.reference.trim() } : {}),
         ...(payment.notes.trim() ? { notes: payment.notes.trim() } : {}),
@@ -206,7 +198,7 @@ export function MemberForm({
     if (member.is_active) {
       const ok = await confirm(
         'Deactivate member?',
-        `${memberName(member)} will be marked inactive and their current membership ended.`,
+        `${memberName(member)} will be moved to Inactive. Their history is kept and you can reactivate them anytime.`,
         'Deactivate',
       );
       if (!ok) return;
@@ -232,6 +224,7 @@ export function MemberForm({
   return (
     <Screen>
       {formError ? <ErrorBanner message={formError} /> : null}
+      {header}
 
       <Card icon="person" title="Member Details">
         <TextField
@@ -317,134 +310,117 @@ export function MemberForm({
         />
       </Card>
 
-      <Card
-        icon="plans"
-        title={member ? 'Membership' : 'Plan Details'}
-        subtitle={member ? 'Choosing a different plan starts a new membership.' : undefined}>
-        {member?.membership ? <CurrentMembership member={member} /> : null}
+      {member ? null : (
+        <>
+        <Card icon="plans" title="Plan Details">
 
-        {plans.length === 0 ? (
-          <View style={[styles.noPlans, { backgroundColor: theme.dangerSoft }]}>
-            <Text style={[styles.noPlansText, { color: theme.danger }]}>
-              No plans found! First create your plans to add a member.
-            </Text>
-            <Button title="Add Plan" icon="add" variant="danger" onPress={addPlan} />
-          </View>
-        ) : (
-          <View style={styles.plans}>
-            {plans.map((item) => (
-              <PlanOption key={item.id} plan={item} selected={item.id === planId} onPress={() => setPlanId(item.id)} />
-            ))}
-          </View>
-        )}
-        {errors.membership_plan_id ? (
-          <Text style={[styles.error, { color: theme.danger }]}>{errors.membership_plan_id}</Text>
-        ) : null}
-
-        {planChanged && plan ? (
-          <>
-            <TextField
-              label="Start Date"
-              required
-              icon="calendar"
-              placeholder="YYYY-MM-DD"
-              keyboardType="number-pad"
-              maxLength={10}
-              {...field('start_date')}
-              onChangeText={(text) => update('start_date', formatDateInput(text))}
-            />
-            <TextField
-              label="Discount (₹)"
-              icon="money"
-              placeholder="0"
-              keyboardType="decimal-pad"
-              value={discount}
-              onChangeText={(text) => {
-                setDiscount(text.replace(/[^\d.]/g, ''));
-                setErrors((current) => ({ ...current, discount: undefined }));
-              }}
-              error={errors.discount}
-              hint={
-                discount.trim() && payable !== undefined
-                  ? ({ text: `Payable ${formatMoney(payable)}`, tone: 'muted' } as const)
-                  : undefined
-              }
-            />
-          </>
-        ) : null}
-      </Card>
-
-      <Card
-        icon="money"
-        title="Payment"
-        subtitle={recordPayment ? undefined : 'Turn on to record money received now.'}
-        action={
-          <Switch
-            value={recordPayment}
-            onValueChange={setRecordPayment}
-            trackColor={{ true: theme.primary, false: theme.border }}
-            accessibilityLabel="Record a payment"
-          />
-        }>
-        {recordPayment ? (
-          <>
-            <TextField
-              label="Amount Received (₹)"
-              icon="money"
-              placeholder={payable !== undefined ? String(payable) : 'Amount'}
-              keyboardType="decimal-pad"
-              value={payment.amount}
-              onChangeText={(text) => {
-                setPayment((current) => ({ ...current, amount: text.replace(/[^\d.]/g, '') }));
-                setErrors((current) => ({ ...current, payment_amount: undefined }));
-              }}
-              error={errors.payment_amount}
-            />
-            <View style={styles.row}>
-              {PAYMENT_METHODS.map((method) => (
-                <View key={method.value} style={styles.flex}>
-                  <Chip
-                    label={method.label}
-                    selected={payment.method === method.value}
-                    onPress={() => setPayment((current) => ({ ...current, method: method.value }))}
-                  />
-                </View>
+          {plans.length === 0 ? (
+            <View style={[styles.noPlans, { backgroundColor: theme.dangerSoft }]}>
+              <Text style={[styles.noPlansText, { color: theme.danger }]}>
+                No plans found! First create your plans to add a member.
+              </Text>
+              <Button title="Add Plan" icon="add" variant="danger" onPress={addPlan} />
+            </View>
+          ) : (
+            <View style={styles.plans}>
+              {plans.map((item) => (
+                <PlanOption key={item.id} plan={item} selected={item.id === planId} onPress={() => setPlanId(item.id)} />
               ))}
             </View>
-            <TextField
-              label="Transaction Reference"
-              icon="document"
-              placeholder="UPI / card reference (optional)"
-              autoCapitalize="characters"
-              value={payment.reference}
-              onChangeText={(text) => setPayment((current) => ({ ...current, reference: text }))}
-            />
-            <TextField
-              label="Notes"
-              placeholder="Optional"
-              value={payment.notes}
-              onChangeText={(text) => setPayment((current) => ({ ...current, notes: text }))}
-            />
-          </>
-        ) : null}
-      </Card>
+          )}
+          {errors.membership_plan_id ? (
+            <Text style={[styles.error, { color: theme.danger }]}>{errors.membership_plan_id}</Text>
+          ) : null}
 
-      {member?.membership && member.membership.payments.length > 0 ? (
-        <Card icon="document" title="Payment History">
-          {member.membership.payments.map((item) => (
-            <View key={item.id} style={[styles.paymentRow, { borderColor: theme.border }]}>
-              <View style={styles.flex}>
-                <Text style={[styles.paymentAmount, { color: theme.text }]}>{formatMoney(item.amount)}</Text>
-                <Text style={[styles.paymentMeta, { color: theme.textSecondary }]}>
-                  {formatDate(toISODate(new Date(item.payment_date)))} ·{' '}
-                  {PAYMENT_METHODS.find((method) => method.value === item.payment_method)?.label ?? item.payment_method}
-                  {item.transaction_reference ? ` · ${item.transaction_reference}` : ''}
-                </Text>
-              </View>
-            </View>
-          ))}
+          {plan ? (
+            <>
+              <TextField
+                label="Start Date"
+                required
+                icon="calendar"
+                placeholder="YYYY-MM-DD"
+                keyboardType="number-pad"
+                maxLength={10}
+                {...field('start_date')}
+                onChangeText={(text) => update('start_date', formatDateInput(text))}
+              />
+              <TextField
+                label="Discount (₹)"
+                icon="money"
+                placeholder="0"
+                keyboardType="decimal-pad"
+                value={discount}
+                onChangeText={(text) => {
+                  setDiscount(text.replace(/[^\d.]/g, ''));
+                  setErrors((current) => ({ ...current, discount: undefined }));
+                }}
+                error={errors.discount}
+                hint={
+                  discount.trim() && payable !== undefined
+                    ? ({ text: `Payable ${formatMoney(payable)}`, tone: 'muted' } as const)
+                    : undefined
+                }
+              />
+            </>
+          ) : null}
         </Card>
-      ) : null}
+
+        <Card
+          icon="money"
+          title="Payment"
+          subtitle={recordPayment ? undefined : 'Turn on to record money received now.'}
+          action={
+            <Switch
+              value={recordPayment}
+              onValueChange={setRecordPayment}
+              trackColor={{ true: theme.primary, false: theme.border }}
+              accessibilityLabel="Record a payment"
+            />
+          }>
+          {recordPayment ? (
+            <>
+              <TextField
+                label="Amount Received (₹)"
+                icon="money"
+                placeholder={payable !== undefined ? String(payable) : 'Amount'}
+                keyboardType="decimal-pad"
+                value={payment.amount}
+                onChangeText={(text) => {
+                  setPayment((current) => ({ ...current, amount: text.replace(/[^\d.]/g, '') }));
+                  setErrors((current) => ({ ...current, payment_amount: undefined }));
+                }}
+                error={errors.payment_amount}
+              />
+              <View style={styles.row}>
+                {PAYMENT_METHODS.map((method) => (
+                  <View key={method.value} style={styles.flex}>
+                    <Chip
+                      label={method.label}
+                      selected={payment.method === method.value}
+                      onPress={() => setPayment((current) => ({ ...current, method: method.value }))}
+                    />
+                  </View>
+                ))}
+              </View>
+              <TextField
+                label="Transaction Reference"
+                icon="document"
+                placeholder="UPI / card reference (optional)"
+                autoCapitalize="characters"
+                value={payment.reference}
+                onChangeText={(text) => setPayment((current) => ({ ...current, reference: text }))}
+              />
+              <TextField
+                label="Notes"
+                placeholder="Optional"
+                value={payment.notes}
+                onChangeText={(text) => setPayment((current) => ({ ...current, notes: text }))}
+              />
+            </>
+          ) : null}
+        </Card>
+        </>
+      )}
 
       <Button title={member ? 'Save Changes' : 'Add Member'} loading={submitting} onPress={submit} />
       {footer}
@@ -459,86 +435,6 @@ export function MemberForm({
         )
       ) : null}
     </Screen>
-  );
-}
-
-function CurrentMembership({ member }: { member: Member }) {
-  const theme = useTheme();
-  const membership = member.membership!;
-  const balance = Number(membership.balance);
-
-  return (
-    <View style={[styles.current, { backgroundColor: theme.background, borderColor: theme.border }]}>
-      <View style={styles.currentHeader}>
-        <View style={styles.flex}>
-          <Text style={[styles.currentLabel, { color: theme.textSecondary }]}>Current plan</Text>
-          <Text style={[styles.currentPlan, { color: theme.text }]}>{membership.membership_plan.name}</Text>
-          <Text style={[styles.currentDates, { color: theme.textSecondary }]}>
-            {formatDate(membership.start_date)} – {formatDate(membership.end_date)}
-          </Text>
-        </View>
-        <StatusPill {...membershipStatus(member)} />
-      </View>
-
-      <View style={[styles.duesRow, { borderColor: theme.border }]}>
-        <Dues label="Payable" value={formatMoney(membership.net_payable)} color={theme.text} />
-        <Dues label="Paid" value={formatMoney(membership.amount_paid)} color={theme.success} />
-        <Dues
-          label="Balance"
-          value={formatMoney(membership.balance)}
-          color={balance > 0 ? theme.danger : theme.textSecondary}
-        />
-      </View>
-
-      {Number(membership.discount) > 0 ? (
-        <Text style={[styles.discountNote, { color: theme.textSecondary }]}>
-          Includes {formatMoney(membership.discount)} discount on {formatMoney(membership.amount)}.
-        </Text>
-      ) : null}
-    </View>
-  );
-}
-
-function Dues({ label, value, color }: { label: string; value: string; color: string }) {
-  const theme = useTheme();
-  return (
-    <View style={styles.flex}>
-      <Text style={[styles.duesLabel, { color: theme.textSecondary }]}>{label}</Text>
-      <Text style={[styles.duesValue, { color }]}>{value}</Text>
-    </View>
-  );
-}
-
-function PlanOption({ plan, selected, onPress }: { plan: MembershipPlan; selected: boolean; onPress: () => void }) {
-  const theme = useTheme();
-
-  return (
-    <Pressable
-      accessibilityRole="radio"
-      accessibilityState={{ selected }}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.planOption,
-        selected
-          ? { backgroundColor: theme.primarySoft, borderColor: theme.primary }
-          : { backgroundColor: theme.surface, borderColor: theme.border },
-        pressed && styles.pressed,
-      ]}>
-      <View
-        style={[
-          styles.radio,
-          { borderColor: selected ? theme.primary : theme.border, backgroundColor: selected ? theme.primary : 'transparent' },
-        ]}>
-        {selected ? <Icon name="check" color={theme.onPrimary} size={14} /> : null}
-      </View>
-      <View style={styles.flex}>
-        <Text style={[styles.planName, { color: theme.text }]}>{plan.name}</Text>
-        <Text style={[styles.planMeta, { color: theme.textSecondary }]}>
-          {formatDuration(plan.duration_value, plan.duration_type)}
-        </Text>
-      </View>
-      <Text style={[styles.planAmount, { color: theme.text }]}>{formatMoney(plan.amount)}</Text>
-    </Pressable>
   );
 }
 
@@ -574,91 +470,5 @@ const styles = StyleSheet.create({
   },
   plans: {
     gap: Spacing.two,
-  },
-  planOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
-    padding: Spacing.three,
-    borderWidth: 1.5,
-    borderRadius: Radius.md,
-  },
-  pressed: {
-    opacity: 0.75,
-  },
-  radio: {
-    width: 22,
-    height: 22,
-    borderRadius: Radius.full,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  planName: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  planMeta: {
-    fontSize: 13,
-  },
-  planAmount: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  current: {
-    gap: Spacing.three,
-    padding: Spacing.three,
-    borderWidth: 1,
-    borderRadius: Radius.md,
-  },
-  currentHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
-  },
-  duesRow: {
-    flexDirection: 'row',
-    gap: Spacing.two,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    paddingTop: Spacing.two + 2,
-  },
-  duesLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  duesValue: {
-    fontSize: 15,
-    fontWeight: '700',
-    marginTop: 2,
-  },
-  discountNote: {
-    fontSize: 12,
-  },
-  currentLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  currentPlan: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginTop: 2,
-  },
-  currentDates: {
-    fontSize: 13,
-    marginTop: 2,
-  },
-  paymentRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingBottom: Spacing.two,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  paymentAmount: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  paymentMeta: {
-    fontSize: 13,
-    marginTop: 2,
   },
 });

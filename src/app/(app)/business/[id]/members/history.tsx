@@ -1,47 +1,127 @@
 import { useLocalSearchParams } from 'expo-router';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 
 import { StatusPill } from '@/components/status-pill';
 import { Card } from '@/components/ui/card';
+import { Chip } from '@/components/ui/chip';
 import { ErrorBanner } from '@/components/ui/error-banner';
-import { type Tone } from '@/components/ui/icon-badge';
+import { Icon, type IconName } from '@/components/ui/icon';
+import { type Tone, useToneColors } from '@/components/ui/icon-badge';
 import { EmptyState } from '@/components/ui/states';
-import { Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 import { usePaginatedList } from '@/hooks/use-paginated-list';
 import { useTheme } from '@/hooks/use-theme';
-import { api, type Membership, type Payment } from '@/lib/api';
+import { api, type MemberActivity, type Membership, type Payment } from '@/lib/api';
 import { useBusiness } from '@/lib/business';
-import { daysUntil, formatDate, toISODate } from '@/lib/dates';
+import { daysUntil, formatDate, formatTime, toISODate } from '@/lib/dates';
 import { formatMoney } from '@/lib/format';
+import { paymentMethodLabel } from '@/lib/payments';
 
-const PAYMENT_METHOD_LABELS: Record<string, string> = {
-  CASH: 'Cash',
-  UPI: 'UPI',
-  CARD: 'Card',
-  BANK_TRANSFER: 'Bank',
+type HistoryView = 'timeline' | 'plans';
+
+const ACTIVITY_STYLES: Record<string, { icon: IconName; tone: Tone }> = {
+  MEMBER_CREATED: { icon: 'personAdd', tone: 'primary' },
+  MEMBER_UPDATED: { icon: 'edit', tone: 'neutral' },
+  MEMBERSHIP_RENEWED: { icon: 'renew', tone: 'success' },
+  PLAN_CHANGED: { icon: 'swap', tone: 'accent' },
+  MEMBERSHIP_EXTENDED: { icon: 'pause', tone: 'accent' },
+  MEMBERSHIP_UPDATED: { icon: 'edit', tone: 'accent' },
+  PAYMENT_ADDED: { icon: 'money', tone: 'success' },
+  PAYMENT_DELETED: { icon: 'money', tone: 'danger' },
+  MEMBER_DEACTIVATED: { icon: 'personOff', tone: 'danger' },
+  MEMBER_REACTIVATED: { icon: 'check', tone: 'success' },
 };
 
 function membershipPill(membership: Membership): { label: string; tone: Tone } {
-  if (!membership.is_active) return { label: 'Ended', tone: 'neutral' };
-  if (daysUntil(membership.end_date) < 0) return { label: 'Expired', tone: 'danger' };
-  return { label: 'Active', tone: 'success' };
+  if (daysUntil(membership.end_date) < 0) return { label: 'Ended', tone: 'neutral' };
+  if (daysUntil(membership.start_date) > 0) return { label: 'Upcoming', tone: 'accent' };
+  return { label: 'Current', tone: 'success' };
 }
 
-export default function MembershipHistoryScreen() {
-  const { account } = useBusiness();
+/** Everything that happened to a member (timeline), or their plans with payments and dues. */
+export default function MemberHistoryScreen() {
   const memberId = Number(useLocalSearchParams<{ memberId: string }>().memberId);
+  const [view, setView] = useState<HistoryView>('timeline');
 
+  return (
+    <>
+      <View style={styles.toggle}>
+        <View style={styles.flex}>
+          <Chip label="Timeline" selected={view === 'timeline'} onPress={() => setView('timeline')} />
+        </View>
+        <View style={styles.flex}>
+          <Chip label="Plans & Payments" selected={view === 'plans'} onPress={() => setView('plans')} />
+        </View>
+      </View>
+      {view === 'timeline' ? <Timeline memberId={memberId} /> : <Plans memberId={memberId} />}
+    </>
+  );
+}
+
+function Timeline({ memberId }: { memberId: number }) {
+  const { account } = useBusiness();
+  const fetchPage = useCallback(
+    (page: number) => api.memberActivity(account.id, memberId, page),
+    [account.id, memberId],
+  );
+  const list = usePaginatedList(fetchPage);
+
+  if (list.items === null) return list.error ? <ErrorBanner message={list.error} /> : <Loading />;
+  return (
+    <FlatList
+      data={list.items}
+      keyExtractor={(item) => String(item.id)}
+      contentContainerStyle={styles.timeline}
+      renderItem={({ item, index }) => <ActivityRow activity={item} last={index === list.items!.length - 1} />}
+      refreshControl={<RefreshControl refreshing={list.refreshing} onRefresh={list.refresh} />}
+      onEndReached={list.loadMore}
+      onEndReachedThreshold={0.4}
+      ListEmptyComponent={
+        <EmptyState
+          icon="history"
+          title="No history yet"
+          message="Changes are recorded from now on: renewals, plan changes, payments and edits."
+        />
+      }
+      ListFooterComponent={list.loadingMore ? <Loading /> : null}
+    />
+  );
+}
+
+function ActivityRow({ activity, last }: { activity: MemberActivity; last: boolean }) {
+  const theme = useTheme();
+  const style = ACTIVITY_STYLES[activity.activity_type] ?? { icon: 'info', tone: 'neutral' };
+  const colors = useToneColors(style.tone);
+  const when = `${formatDate(toISODate(new Date(activity.created_at)))}, ${formatTime(activity.created_at)}`;
+
+  return (
+    <View style={styles.activity}>
+      <View style={styles.rail}>
+        <View style={[styles.dot, { backgroundColor: colors.background }]}>
+          <Icon name={style.icon} color={colors.color} size={16} />
+        </View>
+        {last ? null : <View style={[styles.line, { backgroundColor: theme.border }]} />}
+      </View>
+      <View style={[styles.activityBody, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        <Text style={[styles.activityText, { color: theme.text }]}>{activity.description}</Text>
+        <Text style={[styles.activityMeta, { color: theme.textSecondary }]}>
+          {when} · {activity.created_by ?? 'Automatic'}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function Plans({ memberId }: { memberId: number }) {
+  const { account } = useBusiness();
   const fetchPage = useCallback(
     (page: number) => api.memberships(account.id, memberId, page),
     [account.id, memberId],
   );
   const list = usePaginatedList(fetchPage);
 
-  if (list.items === null) {
-    return list.error ? <ErrorBanner message={list.error} /> : <Loading />;
-  }
-
+  if (list.items === null) return list.error ? <ErrorBanner message={list.error} /> : <Loading />;
   return (
     <FlatList
       data={list.items}
@@ -111,7 +191,7 @@ function PaymentRow({ payment }: { payment: Payment }) {
       <Text style={[styles.paymentAmount, { color: theme.text }]}>{formatMoney(payment.amount)}</Text>
       <Text style={[styles.paymentMeta, { color: theme.textSecondary }]}>
         {formatDate(toISODate(new Date(payment.payment_date)))} ·{' '}
-        {PAYMENT_METHOD_LABELS[payment.payment_method] ?? payment.payment_method}
+        {paymentMethodLabel(payment.payment_method)}
         {payment.transaction_reference ? ` · ${payment.transaction_reference}` : ''}
       </Text>
     </View>
@@ -134,6 +214,50 @@ function Loading() {
 }
 
 const styles = StyleSheet.create({
+  toggle: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+    paddingHorizontal: Spacing.three,
+    paddingTop: Spacing.three,
+  },
+  timeline: {
+    padding: Spacing.three,
+  },
+  activity: {
+    flexDirection: 'row',
+    gap: Spacing.three,
+  },
+  rail: {
+    alignItems: 'center',
+  },
+  dot: {
+    width: 32,
+    height: 32,
+    borderRadius: Radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  line: {
+    flex: 1,
+    width: 2,
+    marginVertical: 2,
+  },
+  activityBody: {
+    flex: 1,
+    gap: 4,
+    padding: Spacing.three,
+    borderWidth: 1,
+    borderRadius: Radius.md,
+    marginBottom: Spacing.two,
+  },
+  activityText: {
+    fontSize: 14,
+    fontWeight: '600',
+    lineHeight: 20,
+  },
+  activityMeta: {
+    fontSize: 12,
+  },
   content: {
     padding: Spacing.three,
     gap: Spacing.three,
