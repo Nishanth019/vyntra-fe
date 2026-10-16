@@ -16,16 +16,23 @@ import { useTheme } from '@/hooks/use-theme';
 import { api } from '@/lib/api';
 import { useBusiness } from '@/lib/business';
 import { toISODate } from '@/lib/dates';
+import { formatMoney } from '@/lib/format';
 import { fetchMemberCounts, type MemberFilterKey } from '@/lib/member-filters';
 import { useSession } from '@/lib/session';
 
 type Tile = {
   label: string;
-  value: number;
+  value: number | string;
   icon: IconName;
   tone: Tone;
   href?: Href;
 };
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const rows: T[][] = [];
+  for (let i = 0; i < items.length; i += size) rows.push(items.slice(i, i + size));
+  return rows;
+}
 
 function greeting() {
   const hour = new Date().getHours();
@@ -39,12 +46,13 @@ export default function DashboardScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const fetchStats = useCallback(async () => {
-    const [members, attendance, plans] = await Promise.all([
+    const [members, attendance, plans, collections] = await Promise.all([
       fetchMemberCounts(account.id),
       api.attendance({ business_account_id: account.id, attendance_date: toISODate(new Date()) }),
       api.plans(account.id),
+      api.collections(account.id),
     ]);
-    return { members, checkedInToday: attendance.count, plans: plans.count };
+    return { members, checkedInToday: attendance.count, plans: plans.count, collections };
   }, [account.id]);
   const { data: stats, error, refreshing, refresh, retry } = useResource(fetchStats);
 
@@ -78,8 +86,8 @@ export default function DashboardScreen() {
     );
   }
 
-  const { members } = stats;
-  const tiles: Tile[] = [
+  const { members, collections } = stats;
+  const overviewTiles: Tile[] = [
     { label: 'Live Memberships', value: members.live, icon: 'people', tone: 'success', href: membersHref('live') },
     { label: 'Total Members', value: members.all, icon: 'people', tone: 'primary', href: membersHref('all') },
     { label: 'Expired Memberships', value: members.expired, icon: 'personOff', tone: 'danger', href: membersHref('expired') },
@@ -102,7 +110,12 @@ export default function DashboardScreen() {
       href: { pathname: '/business/[id]/plans', params },
     },
   ];
-  const rows = [tiles.slice(0, 3), tiles.slice(3, 6), tiles.slice(6, 9)];
+  const collectionTiles: Tile[] = [
+    { label: "Today's Collection", value: formatMoney(collections.today_collection), icon: 'money', tone: 'success' },
+    { label: 'This Month', value: formatMoney(collections.month_collection), icon: 'report', tone: 'primary' },
+    { label: 'Outstanding Dues', value: formatMoney(collections.outstanding_dues), icon: 'money', tone: 'danger' },
+    { label: 'Dues Pending', value: members.dues, icon: 'warning', tone: 'warning', href: membersHref('dues') },
+  ];
 
   return (
     <>
@@ -139,7 +152,18 @@ export default function DashboardScreen() {
 
         <Text style={[styles.sectionTitle, { color: theme.text }]}>Overview</Text>
         <View style={styles.grid}>
-          {rows.map((row, i) => (
+          {chunk(overviewTiles, 3).map((row, i) => (
+            <View key={i} style={styles.row}>
+              {row.map((tile) => (
+                <StatTile key={tile.label} tile={tile} />
+              ))}
+            </View>
+          ))}
+        </View>
+
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Collections</Text>
+        <View style={styles.grid}>
+          {chunk(collectionTiles, 2).map((row, i) => (
             <View key={i} style={styles.row}>
               {row.map((tile) => (
                 <StatTile key={tile.label} tile={tile} />

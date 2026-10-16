@@ -1,7 +1,15 @@
 import { api, type MemberQuery } from '@/lib/api';
 import { addDays, toISODate } from '@/lib/dates';
 
-export type MemberFilterKey = 'all' | 'live' | 'expired' | 'expiring3' | 'expiring7' | 'expiring15' | 'inactive';
+export type MemberFilterKey =
+  | 'all'
+  | 'live'
+  | 'expired'
+  | 'expiring3'
+  | 'expiring7'
+  | 'expiring15'
+  | 'dues'
+  | 'inactive';
 
 type MemberFilter = {
   key: MemberFilterKey;
@@ -26,6 +34,7 @@ export const MEMBER_FILTERS: MemberFilter[] = [
   { key: 'expiring3', label: 'Expiring (0–3 Days)', query: (today) => endingBetween(today, 0, 3) },
   { key: 'expiring7', label: 'Expiring (4–7 Days)', query: (today) => endingBetween(today, 4, 7) },
   { key: 'expiring15', label: 'Expiring (8–15 Days)', query: (today) => endingBetween(today, 8, 15) },
+  { key: 'dues', label: 'Dues Pending', query: () => ({ is_active: true, has_dues: true }) },
   { key: 'inactive', label: 'Inactive Members', query: () => ({ is_active: false }) },
 ];
 
