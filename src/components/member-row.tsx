@@ -6,12 +6,14 @@ import { useToneColors } from '@/components/ui/icon-badge';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { Member } from '@/lib/api';
-import { initials, memberName } from '@/lib/format';
+import { formatMoney, initials, memberName } from '@/lib/format';
 
 type PersonRowProps = {
   name: string;
   /** Secondary lines under the name; empty ones are skipped. */
   details: (string | null | undefined)[];
+  /** A line in red under the details, e.g. an amount due. */
+  alert?: string;
   /** Shown on the right, e.g. a status pill. */
   trailing?: ReactNode;
   /** Greys out the avatar, e.g. for inactive people. */
@@ -20,7 +22,7 @@ type PersonRowProps = {
 };
 
 /** A tappable card for a person (member, staff, admin) with an initials avatar. */
-export function PersonRow({ name, details, trailing, muted = false, onPress }: PersonRowProps) {
+export function PersonRow({ name, details, alert, trailing, muted = false, onPress }: PersonRowProps) {
   const theme = useTheme();
   const avatar = useToneColors(muted ? 'neutral' : 'primary');
 
@@ -46,6 +48,11 @@ export function PersonRow({ name, details, trailing, muted = false, onPress }: P
             {line}
           </Text>
         ))}
+        {alert ? (
+          <Text style={[styles.alert, { color: theme.danger }]} numberOfLines={1}>
+            {alert}
+          </Text>
+        ) : null}
       </View>
       {trailing}
     </Pressable>
@@ -62,6 +69,7 @@ export function MemberRow({ member, onPress }: { member: Member; onPress?: () =>
         `#${member.member_code}${member.phone ? ` · ${member.phone}` : ''}`,
         member.membership?.membership_plan.name,
       ]}
+      alert={Number(member.total_due) > 0 ? `Due ${formatMoney(member.total_due)}` : undefined}
       trailing={<StatusPill {...status} />}
       muted={status.tone === 'neutral'}
       onPress={onPress}
@@ -102,5 +110,9 @@ const styles = StyleSheet.create({
   },
   detail: {
     fontSize: 13,
+  },
+  alert: {
+    fontSize: 13,
+    fontWeight: '700',
   },
 });

@@ -284,6 +284,7 @@ export type MemberQuery = {
   search?: string;
   member_code?: string;
   phone?: string;
+  email?: string;
   is_active?: boolean;
   status?: 'live' | 'expired';
   end_date_from?: string;

@@ -75,8 +75,12 @@ export function MemberForm({
   const [payment, setPayment] = useState({ amount: '', method: 'CASH', reference: '', notes: '' });
 
   const [codeCheck, setCodeCheck] = useState<{ code: string; taken: boolean } | null>(null);
-  // New members: someone already registered with this mobile number (to renew instead).
-  const [phoneCheck, setPhoneCheck] = useState<{ phone: string; member: Member | null } | null>(null);
+  // New members: someone already registered with this mobile number or email (to renew instead).
+  const [duplicateCheck, setDuplicateCheck] = useState<{
+    key: string;
+    member: Member | null;
+    matchedBy: 'mobile' | 'email';
+  } | null>(null);
   // Emergency contact is optional, so it starts collapsed unless it has details.
   const [showEmergency, setShowEmergency] = useState(
     Boolean(member?.gym_details?.emergency_contact_name || member?.gym_details?.emergency_contact_phone),
@@ -103,19 +107,28 @@ export function MemberForm({
     return () => clearTimeout(timer);
   }, [code, account.id, member?.id, member?.member_code]);
 
-  // Adding someone whose number is already registered? Offer to renew / open them instead.
-  const phone = values.phone.trim();
+  // Adding someone whose mobile or email is already registered? Offer to renew / open them instead.
+  const phone = PHONE_PATTERN.test(values.phone.trim()) ? values.phone.trim() : '';
+  const email = EMAIL_PATTERN.test(values.email.trim()) ? values.email.trim().toLowerCase() : '';
+  const duplicateKey = `${phone}|${email}`;
   useEffect(() => {
-    if (member || !PHONE_PATTERN.test(phone)) return;
-    const timer = setTimeout(() => {
-      api.members({ business_account_id: account.id, phone }).then(
-        ({ results }) => setPhoneCheck({ phone, member: results[0] ?? null }),
-        () => {},
-      );
+    if (member || (!phone && !email)) return;
+    const timer = setTimeout(async () => {
+      try {
+        const query = { business_account_id: account.id };
+        const [byPhone, byEmail] = await Promise.all([
+          phone ? api.members({ ...query, phone }) : null,
+          email ? api.members({ ...query, email }) : null,
+        ]);
+        const match = byPhone?.results[0] ?? byEmail?.results[0] ?? null;
+        setDuplicateCheck({ key: duplicateKey, member: match, matchedBy: byPhone?.results[0] ? 'mobile' : 'email' });
+      } catch {
+        // The check is only a hint; saving still validates.
+      }
     }, 400);
     return () => clearTimeout(timer);
-  }, [phone, member, account.id]);
-  const existing = phoneCheck?.phone === phone ? phoneCheck.member : null;
+  }, [duplicateKey, phone, email, member, account.id]);
+  const duplicate = duplicateCheck?.key === duplicateKey && duplicateCheck.member ? duplicateCheck : null;
 
   const codeTaken = codeCheck?.code === code && codeCheck.taken;
   const codeHint =
@@ -290,7 +303,7 @@ export function MemberForm({
           {...field('phone')}
           onChangeText={(text) => update('phone', text.replace(/[^\d+]/g, ''))}
         />
-        {existing ? <ExistingMember member={existing} /> : null}
+        {duplicate?.matchedBy === 'mobile' ? <ExistingMember member={duplicate.member!} matchedBy="mobile" /> : null}
         <TextField
           label="Email"
           icon="mail"
@@ -299,6 +312,7 @@ export function MemberForm({
           keyboardType="email-address"
           {...field('email')}
         />
+        {duplicate?.matchedBy === 'email' ? <ExistingMember member={duplicate.member!} matchedBy="email" /> : null}
         <DateField
           label="Date of Birth"
           placeholder="Optional"
@@ -475,8 +489,8 @@ export function MemberForm({
   );
 }
 
-/** Shown when the mobile number being added already belongs to a member of this business. */
-function ExistingMember({ member }: { member: Member }) {
+/** Shown when the mobile number or email being added already belongs to a member of this business. */
+function ExistingMember({ member, matchedBy }: { member: Member; matchedBy: 'mobile' | 'email' }) {
   const theme = useTheme();
   const { account } = useBusiness();
   const status = membershipStatus(member);
@@ -487,7 +501,8 @@ function ExistingMember({ member }: { member: Member }) {
     <View style={[styles.existing, { backgroundColor: theme.warningSoft, borderColor: theme.warning }]}>
       <View style={styles.existingHeader}>
         <Text style={[styles.existingText, { color: theme.text }]}>
-          Already registered: {memberName(member)} (#{member.member_code})
+          This {matchedBy === 'mobile' ? 'mobile number' : 'email'} is already registered: {memberName(member)} (#
+          {member.member_code})
         </Text>
         <StatusPill {...status} />
       </View>
