@@ -1,8 +1,8 @@
 import type { PropsWithChildren } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
 import { MaxFormWidth, Spacing } from '@/constants/theme';
-import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
 import { useTheme } from '@/hooks/use-theme';
 
 type ScreenProps = PropsWithChildren<{
@@ -24,38 +24,31 @@ export function Screen({
   children,
 }: ScreenProps) {
   const theme = useTheme();
-  const keyboard = useKeyboardInset();
 
   return (
-    <View style={[styles.container, { paddingBottom: keyboard }]}>
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        contentInsetAdjustmentBehavior="automatic"
-        automaticallyAdjustKeyboardInsets
-        keyboardShouldPersistTaps="handled"
-        refreshControl={
-          onRefresh ? (
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />
-          ) : undefined
-        }>
-        <View style={[styles.content, { maxWidth }]}>
-          {title ? (
-            <View style={styles.heading}>
-              <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
-              {subtitle ? <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{subtitle}</Text> : null}
-            </View>
-          ) : null}
-          {children}
-        </View>
-      </ScrollView>
-    </View>
+    // Scrolls the focused field above the keyboard on both Android and iOS.
+    <KeyboardAwareScrollView
+      bottomOffset={Spacing.four}
+      contentContainerStyle={styles.scroll}
+      contentInsetAdjustmentBehavior="automatic"
+      keyboardShouldPersistTaps="handled"
+      refreshControl={
+        onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} /> : undefined
+      }>
+      <View style={[styles.content, { maxWidth }]}>
+        {title ? (
+          <View style={styles.heading}>
+            <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
+            {subtitle ? <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{subtitle}</Text> : null}
+          </View>
+        ) : null}
+        {children}
+      </View>
+    </KeyboardAwareScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   scroll: {
     flexGrow: 1,
     paddingHorizontal: Spacing.three + 4,

@@ -1,12 +1,12 @@
 import { Link, type Href } from 'expo-router';
 import type { PropsWithChildren } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Gradient } from '@/components/ui/gradient';
 import { Icon } from '@/components/ui/icon';
 import { MaxFormWidth, Radius, shadow, Spacing } from '@/constants/theme';
-import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
 import { useTheme } from '@/hooks/use-theme';
 
 type AuthLayoutProps = PropsWithChildren<{
@@ -18,52 +18,48 @@ type AuthLayoutProps = PropsWithChildren<{
 
 export function AuthLayout({ title, subtitle, footer, children }: AuthLayoutProps) {
   const theme = useTheme();
-  const keyboard = useKeyboardInset();
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background, paddingBottom: keyboard }]}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <View style={styles.art}>
         <Icon name="dumbbell" color={theme.primary} size={260} />
       </View>
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}>
-          <View style={styles.content}>
-            <View style={styles.brand}>
-              <View style={[styles.logo, shadow(theme.primary, 3)]}>
-                <Gradient from={theme.primary} to={theme.primaryEnd} />
-                <Text style={[styles.logoText, { color: theme.onPrimary }]}>V</Text>
-              </View>
-              <Text style={[styles.brandName, { color: theme.text }]}>Vyntra</Text>
+      {/* Scrolls the focused field above the keyboard on both Android and iOS. */}
+      <KeyboardAwareScrollView
+        bottomOffset={Spacing.four}
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}>
+        <View style={styles.content}>
+          <View style={styles.brand}>
+            <View style={[styles.logo, shadow(theme.primary, 3)]}>
+              <Gradient from={theme.primary} to={theme.primaryEnd} />
+              <Text style={[styles.logoText, { color: theme.onPrimary }]}>V</Text>
             </View>
-
-            <View style={styles.heading}>
-              <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
-              <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{subtitle}</Text>
-            </View>
-
-            <View style={styles.form}>{children}</View>
-
-            <View style={styles.footer}>
-              <Text style={[styles.footerText, { color: theme.textSecondary }]}>{footer.prompt}</Text>
-              <Link href={footer.href} replace style={[styles.footerLink, { color: theme.primary }]}>
-                {footer.linkLabel}
-              </Link>
-            </View>
+            <Text style={[styles.brandName, { color: theme.text }]}>Vyntra</Text>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+
+          <View style={styles.heading}>
+            <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
+            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{subtitle}</Text>
+          </View>
+
+          <View style={styles.form}>{children}</View>
+
+          <View style={styles.footer}>
+            <Text style={[styles.footerText, { color: theme.textSecondary }]}>{footer.prompt}</Text>
+            <Link href={footer.href} replace style={[styles.footerLink, { color: theme.primary }]}>
+              {footer.linkLabel}
+            </Link>
+          </View>
+        </View>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
-    flex: 1,
-  },
-  flex: {
     flex: 1,
   },
   scroll: {
