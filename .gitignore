@@ -45,3 +45,6 @@ example
 
 # Firebase config for Android push (comes from the EAS GOOGLE_SERVICES_JSON secret)
 google-services.json
+
+# Local APK builds
+builds/
