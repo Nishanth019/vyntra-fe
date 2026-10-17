@@ -117,10 +117,10 @@ export default function DashboardScreen() {
           </Text>
         </View>
 
-        <View style={[styles.hero, shadow(theme.primary, 3)]}>
+        <View style={styles.hero}>
           <Gradient from={theme.primary} to={theme.primaryEnd} />
           <View style={styles.heroArt}>
-            <Icon name="dumbbell" color="rgba(255,255,255,0.16)" size={150} />
+            <Icon name="dumbbell" color="rgba(255,255,255,0.28)" size={130} />
           </View>
           <Text style={[styles.heroTitle, { color: theme.onPrimary }]}>Build a stronger community</Text>
           <Text style={[styles.heroText, { color: theme.onPrimary }]}>
@@ -245,16 +245,16 @@ function StatTile({ tile }: { tile: Tile }) {
         shadow(theme.shadow),
         pressed && styles.pressed,
       ]}>
-      <IconBadge name={tile.icon} tone={tile.tone} size={46} />
-      <View style={styles.flex}>
-        <Text style={[styles.tileLabel, { color: theme.textSecondary }]} numberOfLines={1}>
-          {tile.label}
-        </Text>
-        <Text style={[styles.tileValue, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
-          {tile.value}
-        </Text>
+      <View style={styles.tileTop}>
+        <IconBadge name={tile.icon} tone={tile.tone} size={42} />
+        <Icon name="chevronRight" color={theme.textSecondary} size={16} />
       </View>
-      <Icon name="chevronRight" color={theme.textSecondary} size={16} />
+      <Text style={[styles.tileLabel, { color: theme.textSecondary }]} numberOfLines={2}>
+        {tile.label}
+      </Text>
+      <Text style={[styles.tileValue, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
+        {tile.value}
+      </Text>
     </Pressable>
   );
 }
@@ -281,9 +281,9 @@ const styles = StyleSheet.create({
   heroArt: {
     position: 'absolute',
     pointerEvents: 'none',
-    right: -24,
-    bottom: -30,
-    transform: [{ rotate: '-20deg' }],
+    right: -10,
+    top: -6,
+    transform: [{ rotate: '-30deg' }],
   },
   heroTitle: {
     fontSize: 24,
@@ -345,26 +345,27 @@ const styles = StyleSheet.create({
   },
   tile: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two + 2,
-    minHeight: 84,
-    paddingHorizontal: Spacing.three - 4,
-    paddingVertical: Spacing.three,
+    gap: Spacing.one,
+    padding: Spacing.three - 2,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: Radius.lg,
   },
   pressed: {
     opacity: 0.7,
   },
+  tileTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.one,
+  },
   tileLabel: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '500',
   },
   tileValue: {
     fontSize: 24,
     fontWeight: '800',
-    marginTop: 2,
   },
   expiring: {
     flexDirection: 'row',

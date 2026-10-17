@@ -21,7 +21,7 @@ export function AuthLayout({ title, subtitle, footer, children }: AuthLayoutProp
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <View style={styles.art}>
-        <Icon name="dumbbell" color={theme.primarySoft} size={260} />
+        <Icon name="dumbbell" color={theme.primary} size={260} />
       </View>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
@@ -35,7 +35,6 @@ export function AuthLayout({ title, subtitle, footer, children }: AuthLayoutProp
                 <Text style={[styles.logoText, { color: theme.onPrimary }]}>V</Text>
               </View>
               <Text style={[styles.brandName, { color: theme.text }]}>Vyntra</Text>
-              <Text style={[styles.tagline, { color: theme.textSecondary }]}>FITNESS FUELS PROGRESS</Text>
             </View>
 
             <View style={styles.heading}>
@@ -78,6 +77,7 @@ const styles = StyleSheet.create({
   },
   art: {
     position: 'absolute',
+    opacity: 0.14,
     right: -50,
     bottom: -40,
     transform: [{ rotate: '-25deg' }],
@@ -103,11 +103,6 @@ const styles = StyleSheet.create({
     fontSize: 34,
     fontWeight: '800',
     letterSpacing: -0.5,
-  },
-  tagline: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 3,
   },
   heading: {
     alignItems: 'center',

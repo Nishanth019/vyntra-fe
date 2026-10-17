@@ -28,7 +28,7 @@ type TabHeaderProps = {
   action?: ReactNode;
 };
 
-/** Top of a bottom-tab screen: the business, the bell and the menu button, then the page title. */
+/** Top of a bottom-tab screen: the menu button, the business and the bell, then the page title. */
 export function TabHeader({ brand = false, title, subtitle, action }: TabHeaderProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -39,6 +39,7 @@ export function TabHeader({ brand = false, title, subtitle, action }: TabHeaderP
   return (
     <View style={[styles.container, { paddingTop: insets.top + Spacing.three }]}>
       <View style={styles.topRow}>
+        <HeaderButton icon="menu" label="Open menu" onPress={openMenu} />
         {brand ? (
           <View style={styles.flex}>
             <Text style={[styles.brand, { color: theme.primary }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
@@ -67,7 +68,6 @@ export function TabHeader({ brand = false, title, subtitle, action }: TabHeaderP
           unread={unread}
           onPress={() => router.push({ pathname: '/business/[id]/notifications', params: { id: account.id } })}
         />
-        <HeaderButton icon="menu" label="Open menu" onPress={openMenu} />
       </View>
 
       {title ? (
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   brand: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '800',
     letterSpacing: -0.8,
   },

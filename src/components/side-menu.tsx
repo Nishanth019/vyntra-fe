@@ -1,9 +1,8 @@
 import Constants from 'expo-constants';
 import { router, type Href } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import type { ReactNode } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { SlideInLeft } from 'react-native-reanimated';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Animated, Dimensions, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Gradient } from '@/components/ui/gradient';
@@ -15,6 +14,8 @@ import { useBusiness } from '@/lib/business';
 import { initials } from '@/lib/format';
 import { PRIVACY_POLICY_URL } from '@/lib/links';
 import { useSession } from '@/lib/session';
+
+const PANEL_WIDTH = Math.min(340, Dimensions.get('window').width * 0.84);
 
 type SideMenuProps = {
   visible: boolean;
@@ -39,6 +40,16 @@ export function SideMenu({ visible, onClose }: SideMenuProps) {
     router.navigate(href);
   }
 
+  // Slides in from the left each time it opens.
+  const [slide] = useState(() => new Animated.Value(-PANEL_WIDTH));
+  useEffect(() => {
+    if (!visible) return;
+    slide.setValue(-PANEL_WIDTH);
+    Animated.timing(slide, { toValue: 0, duration: 220, useNativeDriver: true }).start();
+  }, [visible, slide]);
+  // On Android the whole physical screen, navigation bar included (the window height stops above it).
+  const height = Dimensions.get(Platform.OS === 'android' ? 'screen' : 'window').height;
+
   return (
     // Translucent system bars let the menu run from the very top to the very bottom of the screen.
     <Modal
@@ -48,10 +59,9 @@ export function SideMenu({ visible, onClose }: SideMenuProps) {
       statusBarTranslucent
       navigationBarTranslucent
       onRequestClose={onClose}>
-      <View style={styles.overlay}>
+      <View style={[styles.overlay, { height }]}>
         <Animated.View
-          entering={SlideInLeft.duration(220)}
-          style={[styles.panel, { backgroundColor: theme.background }]}>
+          style={[styles.panel, { height, backgroundColor: theme.background, transform: [{ translateX: slide }] }]}>
           <View style={[styles.profile, { paddingTop: insets.top + Spacing.four }]}>
             <Gradient from={theme.primary} to={theme.primaryEnd} />
             <View style={[styles.avatar, { backgroundColor: theme.onPrimary }]}>
@@ -244,14 +254,11 @@ function MenuRow({ icon, title, subtitle, onPress, tone = 'primary' }: MenuRowPr
 
 const styles = StyleSheet.create({
   overlay: {
-    flex: 1,
     flexDirection: 'row',
     backgroundColor: 'rgba(15, 23, 42, 0.45)',
   },
   panel: {
-    width: '82%',
-    maxWidth: 340,
-    height: '100%',
+    width: PANEL_WIDTH,
     borderTopRightRadius: Radius.xl,
     borderBottomRightRadius: Radius.xl,
     overflow: 'hidden',

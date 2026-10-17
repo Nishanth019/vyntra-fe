@@ -315,8 +315,8 @@ function Kpi({ label, value, icon, tone, footer }: KpiProps) {
   return (
     <View style={[styles.kpi, { backgroundColor: theme.surface, borderColor: theme.border }, shadow(theme.shadow)]}>
       <IconBadge name={icon} tone={tone} size={42} />
-      <View style={styles.flex}>
-        <Text style={[styles.kpiLabel, { color: theme.textSecondary }]} numberOfLines={1}>
+      <View>
+        <Text style={[styles.kpiLabel, { color: theme.textSecondary }]} numberOfLines={2}>
           {label}
         </Text>
         <Text style={[styles.kpiValue, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
@@ -390,15 +390,13 @@ const styles = StyleSheet.create({
   },
   kpi: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.two + 2,
+    gap: Spacing.two,
     padding: Spacing.three - 2,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: Radius.lg,
   },
   kpiLabel: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '500',
   },
   kpiValue: {
