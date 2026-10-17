@@ -9,9 +9,10 @@ import { Icon, type IconName } from '@/components/ui/icon';
 import { IconBadge, type Tone } from '@/components/ui/icon-badge';
 import { Screen } from '@/components/ui/screen';
 import { LoadingState } from '@/components/ui/states';
-import { Radius, shadow, Spacing } from '@/constants/theme';
+import { PageWidth, Radius, shadow, Spacing } from '@/constants/theme';
 import { useResource } from '@/hooks/use-resource';
 import { useTheme } from '@/hooks/use-theme';
+import { useWideLayout } from '@/hooks/use-wide-layout';
 import { api } from '@/lib/api';
 import { useBusiness } from '@/lib/business';
 import { formatMoney } from '@/lib/format';
@@ -26,9 +27,9 @@ type Tile = {
   href: Href;
 };
 
-function pairs<T>(items: T[]): T[][] {
+function chunk<T>(items: T[], size: number): T[][] {
   const rows: T[][] = [];
-  for (let i = 0; i < items.length; i += 2) rows.push(items.slice(i, i + 2));
+  for (let i = 0; i < items.length; i += size) rows.push(items.slice(i, i + size));
   return rows;
 }
 
@@ -42,6 +43,7 @@ export default function DashboardScreen() {
   const { admin } = useSession();
   const { account } = useBusiness();
   const { setUnread } = use(TabsContext);
+  const wide = useWideLayout();
 
   const fetchStats = useCallback(() => api.dashboard(account.id), [account.id]);
   const { data: stats, error, refreshing, refresh, retry } = useResource(fetchStats);
@@ -107,7 +109,7 @@ export default function DashboardScreen() {
   return (
     <>
       <TabHeader brand />
-      <Screen onRefresh={refresh} refreshing={refreshing} maxWidth={720}>
+      <Screen onRefresh={refresh} refreshing={refreshing} maxWidth={wide ? PageWidth.desktop : PageWidth.phone}>
         <View>
           <Text style={[styles.greeting, { color: theme.text }]}>
             {greeting()}, {admin?.full_name.split(' ')[0]}
@@ -144,7 +146,7 @@ export default function DashboardScreen() {
         {error ? <ErrorBanner message={error} /> : null}
 
         <SectionTitle title="Overview" href={membersHref('all')} />
-        <TileGrid tiles={overview} />
+        <TileGrid tiles={overview} columns={wide ? 3 : 2} />
 
         <SectionTitle title="Expiring soon" href={membersHref('expiring3')} />
         <View style={[styles.expiring, { backgroundColor: theme.warningSoft }]}>
@@ -171,7 +173,7 @@ export default function DashboardScreen() {
         </View>
 
         <SectionTitle title="Collections" href={insightsHref} />
-        <TileGrid tiles={money} />
+        <TileGrid tiles={money} columns={wide ? 4 : 2} />
       </Screen>
     </>
   );
@@ -217,10 +219,10 @@ function SectionTitle({ title, href }: { title: string; href: Href }) {
   );
 }
 
-function TileGrid({ tiles }: { tiles: Tile[] }) {
+function TileGrid({ tiles, columns }: { tiles: Tile[]; columns: number }) {
   return (
     <View style={styles.grid}>
-      {pairs(tiles).map((row, i) => (
+      {chunk(tiles, columns).map((row, i) => (
         <View key={i} style={styles.row}>
           {row.map((tile) => (
             <StatTile key={tile.label} tile={tile} />

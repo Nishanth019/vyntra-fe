@@ -6,8 +6,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NotificationBell } from '@/components/notification-bell';
 import { HeaderButton } from '@/components/ui/header-button';
 import { Icon } from '@/components/ui/icon';
-import { Radius, Spacing } from '@/constants/theme';
+import { PageWidth, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useWideLayout } from '@/hooks/use-wide-layout';
 import { useBusiness } from '@/lib/business';
 
 type TabsContextValue = {
@@ -34,12 +35,17 @@ export function TabHeader({ brand = false, title, subtitle, action }: TabHeaderP
   const insets = useSafeAreaInsets();
   const { account } = useBusiness();
   const { openMenu, unread } = use(TabsContext);
+  const wide = useWideLayout();
   const tagline = [account.business_type.name, account.city].filter(Boolean).join(' · ');
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + Spacing.three }]}>
+    <View
+      style={[
+        styles.container,
+        { paddingTop: insets.top + Spacing.three, maxWidth: wide ? PageWidth.desktop + 40 : undefined },
+      ]}>
       <View style={styles.topRow}>
-        <HeaderButton icon="menu" label="Open menu" onPress={openMenu} />
+        {wide ? null : <HeaderButton icon="menu" label="Open menu" onPress={openMenu} />}
         {brand ? (
           <View style={styles.flex}>
             <Text style={[styles.brand, { color: theme.primary }]} numberOfLines={2}>
@@ -87,6 +93,8 @@ export function TabHeader({ brand = false, title, subtitle, action }: TabHeaderP
 
 const styles = StyleSheet.create({
   container: {
+    width: '100%',
+    alignSelf: 'center',
     paddingHorizontal: Spacing.three + 4,
     paddingBottom: Spacing.two,
     gap: Spacing.three + 4,

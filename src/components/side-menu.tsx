@@ -1,5 +1,5 @@
 import Constants from 'expo-constants';
-import { router, type Href } from 'expo-router';
+import { router, usePathname, type Href } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Animated, Dimensions, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -24,28 +24,13 @@ type SideMenuProps = {
 
 export function SideMenu({ visible, onClose }: SideMenuProps) {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
-  const { admin, signOut } = useSession();
-  const { account } = useBusiness();
-  const params = { id: account.id };
-
-  function go(href: Href) {
-    onClose();
-    router.push(href);
-  }
-
-  /** Switches to one of the bottom tabs. */
-  function tab(href: Href) {
-    onClose();
-    router.navigate(href);
-  }
 
   // Slides in from the left each time it opens.
   const [slide] = useState(() => new Animated.Value(-PANEL_WIDTH));
   useEffect(() => {
     if (!visible) return;
     slide.setValue(-PANEL_WIDTH);
-    Animated.timing(slide, { toValue: 0, duration: 220, useNativeDriver: true }).start();
+    Animated.timing(slide, { toValue: 0, duration: 220, useNativeDriver: Platform.OS !== 'web' }).start();
   }, [visible, slide]);
   // On Android the whole physical screen, navigation bar included (the window height stops above it).
   const height = Dimensions.get(Platform.OS === 'android' ? 'screen' : 'window').height;
@@ -62,152 +47,202 @@ export function SideMenu({ visible, onClose }: SideMenuProps) {
       <View style={[styles.overlay, { height }]}>
         <Animated.View
           style={[styles.panel, { height, backgroundColor: theme.background, transform: [{ translateX: slide }] }]}>
-          <View style={[styles.profile, { paddingTop: insets.top + Spacing.four }]}>
-            <Gradient from={theme.primary} to={theme.primaryEnd} />
-            <View style={[styles.avatar, { backgroundColor: theme.onPrimary }]}>
-              <Text style={[styles.avatarText, { color: theme.primary }]}>{initials(admin?.full_name ?? '')}</Text>
-            </View>
-            <View style={styles.profileText}>
-              <Text style={[styles.name, { color: theme.onPrimary }]} numberOfLines={2}>
-                {admin?.full_name}
-              </Text>
-              <Text style={[styles.email, { color: theme.onPrimary }]} numberOfLines={2}>
-                {admin?.email}
-              </Text>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => go('/profile')}
-                style={({ pressed }) => [styles.viewProfile, pressed && styles.pressed]}>
-                <Text style={[styles.viewProfileText, { color: theme.onPrimary }]}>View Profile</Text>
-                <Icon name="chevronRight" color={theme.onPrimary} size={14} />
-              </Pressable>
-            </View>
-          </View>
-
-          <View style={[styles.businessStrip, { backgroundColor: theme.primarySoft }]}>
-            <Text style={[styles.businessStripText, { color: theme.primary }]} numberOfLines={2}>
-              {account.name} · ID {account.id}
-            </Text>
-          </View>
-
-          <ScrollView style={styles.flex} contentContainerStyle={styles.items}>
-            <Section title="Manage">
-              <MenuRow
-                icon="store"
-                title={account.name}
-                subtitle="Organisation settings"
-                onPress={() => go({ pathname: '/business/[id]/settings', params })}
-              />
-              <MenuRow
-                icon="swap"
-                title="Switch Business"
-                subtitle="Open another organisation"
-                onPress={() => {
-                  onClose();
-                  router.replace({ pathname: '/', params: { switch: '1' } });
-                }}
-              />
-            </Section>
-
-            <Section title="Operations">
-              <MenuRow
-                icon="dashboard"
-                title="Dashboard"
-                subtitle="Today at a glance"
-                onPress={() => tab({ pathname: '/business/[id]', params })}
-              />
-              <MenuRow
-                icon="plans"
-                title="Membership Plans"
-                subtitle="Prices and durations"
-                onPress={() => go({ pathname: '/business/[id]/plans', params })}
-              />
-              <MenuRow
-                icon="people"
-                title="Add / Manage Members"
-                subtitle="Add, edit & track members"
-                onPress={() => tab({ pathname: '/business/[id]/members', params })}
-              />
-              <MenuRow
-                icon="report"
-                title="Insights"
-                subtitle="Graphs & reports"
-                onPress={() => tab({ pathname: '/business/[id]/insights', params })}
-              />
-              <MenuRow
-                icon="checkIn"
-                title="Attendance"
-                subtitle="Track member attendance"
-                onPress={() => go({ pathname: '/business/[id]/attendance', params })}
-              />
-              <MenuRow
-                icon="staff"
-                title="Manage Staff"
-                subtitle="Trainers, front desk & more"
-                onPress={() => go({ pathname: '/business/[id]/staff', params })}
-              />
-              <MenuRow
-                icon="admin"
-                title="Manage Users"
-                subtitle="Who can log in to this business"
-                onPress={() => go({ pathname: '/business/[id]/admins', params })}
-              />
-            </Section>
-
-            <Section title="Reports">
-              <MenuRow
-                icon="report"
-                title="Attendance Report"
-                subtitle="A member's visit history"
-                onPress={() => go({ pathname: '/business/[id]/attendance/report', params })}
-              />
-            </Section>
-
-            <Section title="Notifications">
-              <MenuRow
-                icon="bell"
-                title="Notifications"
-                subtitle="Reminders, summaries & alerts"
-                onPress={() => go({ pathname: '/business/[id]/notifications', params })}
-              />
-              <MenuRow
-                icon="settings"
-                title="Notification Settings"
-                subtitle="Choose what you're told about"
-                onPress={() => go({ pathname: '/business/[id]/notification-settings', params })}
-              />
-            </Section>
-
-            <Section title="More">
-              <MenuRow icon="person" title="My Profile" subtitle="Details & password" onPress={() => go('/profile')} />
-              <MenuRow icon="help" title="Need Help?" subtitle="FAQs" onPress={() => go('/help')} />
-              <MenuRow icon="support" title="Contact Us" subtitle="Report your query or issue" onPress={() => go('/contact')} />
-              <MenuRow
-                icon="shield"
-                title="Privacy Policy"
-                subtitle="How your data is handled"
-                onPress={() => {
-                  onClose();
-                  WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL);
-                }}
-              />
-              <MenuRow icon="palette" title="Theme" subtitle="Your app mode" onPress={() => go('/appearance')} />
-              <MenuRow icon="logout" title="Logout" subtitle="Sign out safely" tone="danger" onPress={signOut} />
-            </Section>
-          </ScrollView>
-
-          <Text
-            style={[
-              styles.footer,
-              { color: theme.textSecondary, borderColor: theme.border, paddingBottom: insets.bottom + Spacing.three },
-            ]}>
-            Vyntra · v{Constants.expoConfig?.version}
-          </Text>
+          <MenuPanel onClose={onClose} />
         </Animated.View>
-
         <Pressable accessibilityLabel="Close menu" style={styles.backdrop} onPress={onClose} />
       </View>
     </Modal>
+  );
+}
+
+/** The menu always shown on the left of wide (desktop) screens instead of the slide-out one. */
+export function Sidebar() {
+  const theme = useTheme();
+
+  return (
+    <View style={[styles.sidebar, { backgroundColor: theme.background, borderColor: theme.border }]}>
+      <MenuPanel />
+    </View>
+  );
+}
+
+/** Profile, business and every menu item; `onClose` hides the slide-out menu after a tap. */
+function MenuPanel({ onClose = () => {} }: { onClose?: () => void }) {
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  const pathname = usePathname();
+  const { admin, signOut } = useSession();
+  const { account } = useBusiness();
+  const params = { id: account.id };
+  /** Whether the open screen is this item's, e.g. "/plans" under the business. */
+  const at = (path: string) => pathname === `/business/${account.id}${path}`;
+
+  function go(href: Href) {
+    onClose();
+    router.push(href);
+  }
+
+  /** Switches to one of the bottom tabs. */
+  function tab(href: Href) {
+    onClose();
+    router.navigate(href);
+  }
+
+  return (
+    <>
+    <View style={[styles.profile, { paddingTop: insets.top + Spacing.four }]}>
+      <Gradient from={theme.primary} to={theme.primaryEnd} />
+      <View style={[styles.avatar, { backgroundColor: theme.onPrimary }]}>
+        <Text style={[styles.avatarText, { color: theme.primary }]}>{initials(admin?.full_name ?? '')}</Text>
+      </View>
+      <View style={styles.profileText}>
+        <Text style={[styles.name, { color: theme.onPrimary }]} numberOfLines={2}>
+          {admin?.full_name}
+        </Text>
+        <Text style={[styles.email, { color: theme.onPrimary }]} numberOfLines={2}>
+          {admin?.email}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => go('/profile')}
+          style={({ pressed }) => [styles.viewProfile, pressed && styles.pressed]}>
+          <Text style={[styles.viewProfileText, { color: theme.onPrimary }]}>View Profile</Text>
+          <Icon name="chevronRight" color={theme.onPrimary} size={14} />
+        </Pressable>
+      </View>
+    </View>
+
+    <View style={[styles.businessStrip, { backgroundColor: theme.primarySoft }]}>
+      <Text style={[styles.businessStripText, { color: theme.primary }]} numberOfLines={2}>
+        {account.name} · ID {account.id}
+      </Text>
+    </View>
+
+    <ScrollView style={styles.flex} contentContainerStyle={styles.items}>
+      <Section title="Manage">
+        <MenuRow
+          icon="store"
+          title={account.name}
+          subtitle="Organisation settings"
+          active={at('/settings')}
+                onPress={() => go({ pathname: '/business/[id]/settings', params })}
+        />
+        <MenuRow
+          icon="swap"
+          title="Switch Business"
+          subtitle="Open another organisation"
+          onPress={() => {
+            onClose();
+            router.replace({ pathname: '/', params: { switch: '1' } });
+          }}
+        />
+      </Section>
+
+      <Section title="Operations">
+        <MenuRow
+          icon="dashboard"
+          title="Dashboard"
+          subtitle="Today at a glance"
+          active={at('')}
+                onPress={() => tab({ pathname: '/business/[id]', params })}
+        />
+        <MenuRow
+          icon="plans"
+          title="Membership Plans"
+          subtitle="Prices and durations"
+          active={at('/plans')}
+                onPress={() => go({ pathname: '/business/[id]/plans', params })}
+        />
+        <MenuRow
+          icon="people"
+          title="Add / Manage Members"
+          subtitle="Add, edit & track members"
+          active={at('/members')}
+                onPress={() => tab({ pathname: '/business/[id]/members', params })}
+        />
+        <MenuRow
+          icon="report"
+          title="Insights"
+          subtitle="Graphs & reports"
+          active={at('/insights')}
+                onPress={() => tab({ pathname: '/business/[id]/insights', params })}
+        />
+        <MenuRow
+          icon="checkIn"
+          title="Attendance"
+          subtitle="Track member attendance"
+          active={at('/attendance')}
+                onPress={() => go({ pathname: '/business/[id]/attendance', params })}
+        />
+        <MenuRow
+          icon="staff"
+          title="Manage Staff"
+          subtitle="Trainers, front desk & more"
+          active={at('/staff')}
+                onPress={() => go({ pathname: '/business/[id]/staff', params })}
+        />
+        <MenuRow
+          icon="admin"
+          title="Manage Users"
+          subtitle="Who can log in to this business"
+          active={at('/admins')}
+                onPress={() => go({ pathname: '/business/[id]/admins', params })}
+        />
+      </Section>
+
+      <Section title="Reports">
+        <MenuRow
+          icon="report"
+          title="Attendance Report"
+          subtitle="A member's visit history"
+          active={at('/attendance/report')}
+                onPress={() => go({ pathname: '/business/[id]/attendance/report', params })}
+        />
+      </Section>
+
+      <Section title="Notifications">
+        <MenuRow
+          icon="bell"
+          title="Notifications"
+          subtitle="Reminders, summaries & alerts"
+          active={at('/notifications')}
+                onPress={() => go({ pathname: '/business/[id]/notifications', params })}
+        />
+        <MenuRow
+          icon="settings"
+          title="Notification Settings"
+          subtitle="Choose what you're told about"
+          active={at('/notification-settings')}
+                onPress={() => go({ pathname: '/business/[id]/notification-settings', params })}
+        />
+      </Section>
+
+      <Section title="More">
+        <MenuRow icon="person" title="My Profile" subtitle="Details & password" onPress={() => go('/profile')} />
+        <MenuRow icon="help" title="Need Help?" subtitle="FAQs" onPress={() => go('/help')} />
+        <MenuRow icon="support" title="Contact Us" subtitle="Report your query or issue" onPress={() => go('/contact')} />
+        <MenuRow
+          icon="shield"
+          title="Privacy Policy"
+          subtitle="How your data is handled"
+          onPress={() => {
+            onClose();
+            WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL);
+          }}
+        />
+        <MenuRow icon="palette" title="Theme" subtitle="Your app mode" onPress={() => go('/appearance')} />
+        <MenuRow icon="logout" title="Logout" subtitle="Sign out safely" tone="danger" onPress={signOut} />
+      </Section>
+    </ScrollView>
+
+    <Text
+      style={[
+        styles.footer,
+        { color: theme.textSecondary, borderColor: theme.border, paddingBottom: insets.bottom + Spacing.three },
+      ]}>
+      Vyntra · v{Constants.expoConfig?.version}
+    </Text>
+    </>
   );
 }
 
@@ -228,16 +263,19 @@ type MenuRowProps = {
   subtitle: string;
   onPress: () => void;
   tone?: Tone;
+  /** Highlights the item of the screen that's open. */
+  active?: boolean;
 };
 
-function MenuRow({ icon, title, subtitle, onPress, tone = 'primary' }: MenuRowProps) {
+function MenuRow({ icon, title, subtitle, onPress, tone = 'primary', active = false }: MenuRowProps) {
   const theme = useTheme();
 
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ selected: active }}
       onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed && { backgroundColor: theme.primarySoft }]}>
+      style={({ pressed }) => [styles.row, (pressed || active) && { backgroundColor: theme.primarySoft }]}>
       <IconBadge name={icon} tone={tone} />
       <View style={styles.rowText}>
         <Text style={[styles.rowTitle, { color: tone === 'danger' ? theme.danger : theme.text }]} numberOfLines={2}>
@@ -256,6 +294,10 @@ const styles = StyleSheet.create({
   overlay: {
     flexDirection: 'row',
     backgroundColor: 'rgba(15, 23, 42, 0.45)',
+  },
+  sidebar: {
+    width: 300,
+    borderRightWidth: StyleSheet.hairlineWidth,
   },
   panel: {
     width: PANEL_WIDTH,

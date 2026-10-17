@@ -18,10 +18,11 @@ import { ErrorBanner } from "@/components/ui/error-banner";
 import { HeaderButton } from "@/components/ui/header-button";
 import { EmptyState } from "@/components/ui/states";
 import { TextField } from "@/components/ui/text-field";
-import { Radius, Spacing } from "@/constants/theme";
+import { PageWidth, Radius, Spacing } from "@/constants/theme";
 import { usePaginatedList } from "@/hooks/use-paginated-list";
 import { useResource } from "@/hooks/use-resource";
 import { useTheme } from "@/hooks/use-theme";
+import { useWideLayout } from "@/hooks/use-wide-layout";
 import { api } from "@/lib/api";
 import { useBusiness } from "@/lib/business";
 import {
@@ -34,6 +35,10 @@ import {
 export default function MembersScreen() {
   const theme = useTheme();
   const { account } = useBusiness();
+  // In a desktop browser the list is centered at the same width as the header.
+  const page = useWideLayout()
+    ? ({ width: "100%", maxWidth: PageWidth.desktop + 40, alignSelf: "center" } as const)
+    : null;
   const params = useLocalSearchParams<{ filter?: string }>();
 
   const [filter, setFilter] = useState<MemberFilterKey>(
@@ -127,7 +132,7 @@ export default function MembersScreen() {
         }
       />
 
-      <View style={styles.search}>
+      <View style={[styles.search, page]}>
         <TextField
           label="Search members"
           hideLabel
@@ -139,12 +144,14 @@ export default function MembersScreen() {
           returnKeyType="search"
         />
       </View>
+      {/* Phones swipe through the filters; desktop shows them all, wrapping onto more lines. */}
       <ScrollView
         ref={chipsRef}
-        horizontal
+        horizontal={!page}
+        scrollEnabled={!page}
         showsHorizontalScrollIndicator={false}
-        style={styles.filtersScroll}
-        contentContainerStyle={styles.filters}
+        style={[styles.filtersScroll, page]}
+        contentContainerStyle={[styles.filters, page && styles.filtersWrap]}
       >
         {MEMBER_FILTERS.map((item) => (
           <View
@@ -206,7 +213,7 @@ export default function MembersScreen() {
               }
             />
           )}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, page]}
           keyboardShouldPersistTaps="handled"
           onEndReached={list.loadMore}
           onEndReachedThreshold={0.4}
@@ -258,6 +265,10 @@ const styles = StyleSheet.create({
   filtersScroll: {
     flexGrow: 0,
     flexShrink: 0,
+  },
+  filtersWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
   },
   filters: {
     gap: Spacing.two,

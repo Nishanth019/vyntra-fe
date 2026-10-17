@@ -107,3 +107,6 @@ export function shadow(color: string, strength = 1) {
 }
 
 export const MaxFormWidth = 440;
+
+/** Content width of the tab screens on phones and in a desktop browser. */
+export const PageWidth = { phone: 720, desktop: 1100 } as const;

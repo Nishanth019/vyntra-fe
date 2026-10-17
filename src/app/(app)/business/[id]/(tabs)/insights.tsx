@@ -14,9 +14,10 @@ import { IconBadge, type Tone } from '@/components/ui/icon-badge';
 import { Screen } from '@/components/ui/screen';
 import { Segmented } from '@/components/ui/segmented';
 import { LoadingState } from '@/components/ui/states';
-import { Radius, shadow, Spacing } from '@/constants/theme';
+import { PageWidth, Radius, shadow, Spacing } from '@/constants/theme';
 import { useResource } from '@/hooks/use-resource';
 import { useTheme } from '@/hooks/use-theme';
+import { useWideLayout } from '@/hooks/use-wide-layout';
 import { api, type Insights } from '@/lib/api';
 import { useBusiness } from '@/lib/business';
 import { isValidISODate, parseISODate } from '@/lib/dates';
@@ -44,6 +45,7 @@ function rangeDate(value: string) {
 export default function InsightsScreen() {
   const theme = useTheme();
   const { account } = useBusiness();
+  const wide = useWideLayout();
   const periods = useMemo(() => getPeriods(), []);
   const [periodKey, setPeriodKey] = useState<PeriodKey>('thisMonth');
   const preset = periods.find((item) => item.key === periodKey)!;
@@ -105,7 +107,7 @@ export default function InsightsScreen() {
       {!data ? (
         <LoadingState error={error} onRetry={retry} />
       ) : (
-        <Screen onRefresh={refresh} refreshing={refreshing} maxWidth={720}>
+        <Screen onRefresh={refresh} refreshing={refreshing} maxWidth={wide ? PageWidth.desktop : PageWidth.phone}>
           {error ? <ErrorBanner message={error} /> : null}
           <Report data={data} chartType={chartType} onChartType={setChartType} />
         </Screen>
