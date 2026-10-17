@@ -24,6 +24,7 @@ import { PAYMENT_METHODS } from '@/lib/payments';
 const TITLES: Record<PlanMode, string> = {
   renew: 'Renew Membership',
   change: 'Change Plan',
+  early: 'Renew Early',
   extend: 'Extend / Freeze',
   edit: 'Edit Membership',
 };
@@ -31,13 +32,14 @@ const TITLES: Record<PlanMode, string> = {
 const EXTEND_PRESETS = [7, 15, 30];
 
 function isPlanMode(value: unknown): value is PlanMode {
-  return value === 'renew' || value === 'change' || value === 'extend' || value === 'edit';
+  return value === 'renew' || value === 'change' || value === 'early' || value === 'extend' || value === 'edit';
 }
 
 /** Renew, change plan, extend or correct a member's membership. */
 export default function MembershipPlanScreen() {
   const { account } = useBusiness();
-  const params = useLocalSearchParams<{ memberId: string; mode: string }>();
+  // `target=next` edits the renewed-early next plan instead of the current one.
+  const params = useLocalSearchParams<{ memberId: string; mode: string; target?: string }>();
   const memberId = Number(params.memberId);
   const mode: PlanMode = isPlanMode(params.mode) ? params.mode : 'renew';
 
@@ -52,22 +54,28 @@ export default function MembershipPlanScreen() {
   return (
     <>
       <Stack.Screen options={{ title: TITLES[mode] }} />
-      {mode === 'renew' || mode === 'change' ? (
+      {mode === 'renew' || mode === 'change' || mode === 'early' ? (
         <NewPlanForm mode={mode} member={data.member} plans={data.plans} />
       ) : (
-        <AdjustForm mode={mode} member={data.member} />
+        <AdjustForm mode={mode} member={data.member} next={params.target === 'next'} />
       )}
     </>
   );
 }
 
-function NewPlanForm({ mode, member, plans }: { mode: 'renew' | 'change'; member: Member; plans: MembershipPlan[] }) {
+type NewPlanMode = 'renew' | 'change' | 'early';
+
+const ACTIONS = { renew: 'renew', change: 'change_plan', early: 'renew_early' } as const;
+
+function NewPlanForm({ mode, member, plans }: { mode: NewPlanMode; member: Member; plans: MembershipPlan[] }) {
   const theme = useTheme();
   const { account } = useBusiness();
 
   const currentPlanId = member.membership?.membership_plan.id ?? null;
-  const [planId, setPlanId] = useState<number | null>(mode === 'renew' ? currentPlanId : null);
-  const [startDate, setStartDate] = useState(toISODate(new Date()));
+  // Renew Early: the next plan starts after the current one ends (any later date is fine).
+  const earliestNext = member.membership ? addDays(parseISODate(member.membership.end_date), 1) : new Date();
+  const [planId, setPlanId] = useState<number | null>(mode === 'change' ? null : currentPlanId);
+  const [startDate, setStartDate] = useState(toISODate(mode === 'early' ? earliestNext : new Date()));
   const [discount, setDiscount] = useState('');
   const [recordPayment, setRecordPayment] = useState(true);
   const [payment, setPayment] = useState({ amount: '', method: 'CASH', reference: '' });
@@ -83,6 +91,9 @@ function NewPlanForm({ mode, member, plans }: { mode: 'renew' | 'change'; member
     const next: Record<string, string> = {};
     if (!plan) next.membership_plan_id = 'Choose a plan.';
     if (!isValidISODate(startDate)) next.start_date = 'Choose a start date.';
+    else if (mode === 'early' && startDate < toISODate(earliestNext)) {
+      next.start_date = `Must be on or after ${formatDate(toISODate(earliestNext))}.`;
+    }
     if (discount && plan && Number(discount) > Number(plan.amount)) next.discount = "Discount can't exceed the plan amount.";
     const amount = Number(payment.amount || payable);
     if (recordPayment && !(amount > 0)) next.payment_amount = 'Enter the amount received.';
@@ -93,7 +104,7 @@ function NewPlanForm({ mode, member, plans }: { mode: 'renew' | 'change'; member
     setFormError('');
     try {
       await api.membershipAction(account.id, {
-        action: mode === 'renew' ? 'renew' : 'change_plan',
+        action: ACTIONS[mode],
         member_id: member.id,
         membership_plan_id: plan.id,
         start_date: startDate,
@@ -128,7 +139,9 @@ function NewPlanForm({ mode, member, plans }: { mode: 'renew' | 'change'; member
         subtitle={
           mode === 'renew'
             ? 'Rejoining: pick their new plan. Earlier plans stay in their history.'
-            : 'A completely new plan from the start date. The current plan ends the day before, and only the new plan counts for dues.'
+            : mode === 'early'
+              ? 'Add their next plan (same or different). It starts after the current plan ends; until then only the current plan counts for dues.'
+              : 'A completely new plan from the start date. The current plan ends the day before, and only the new plan counts for dues.'
         }>
         <View style={styles.plans}>
           {plans.map((item) => (
@@ -143,10 +156,13 @@ function NewPlanForm({ mode, member, plans }: { mode: 'renew' | 'change'; member
           value={startDate}
           onChange={setStartDate}
           error={errors.start_date}
+          minimumDate={mode === 'early' ? earliestNext : undefined}
           note={
             mode === 'change' && member.membership
               ? `Current plan (${member.membership.membership_plan.name}) ends the day before.`
-              : undefined
+              : mode === 'early' && member.membership
+                ? `Current plan ends ${formatDate(member.membership.end_date)}. Pick that next day or later.`
+                : undefined
           }
         />
 
@@ -208,15 +224,15 @@ function NewPlanForm({ mode, member, plans }: { mode: 'renew' | 'change'; member
         ) : null}
       </Card>
 
-      <Button title={mode === 'renew' ? 'Renew' : 'Change Plan'} icon="renew" loading={saving} onPress={save} />
+      <Button title={TITLES[mode]} icon="renew" loading={saving} onPress={save} />
     </Screen>
   );
 }
 
-function AdjustForm({ mode, member }: { mode: 'extend' | 'edit'; member: Member }) {
+function AdjustForm({ mode, member, next }: { mode: 'extend' | 'edit'; member: Member; next: boolean }) {
   const theme = useTheme();
   const { account } = useBusiness();
-  const membership = member.membership!;
+  const membership = (next ? member.next_membership : member.membership)!;
 
   const [days, setDays] = useState('');
   const [reason, setReason] = useState('');

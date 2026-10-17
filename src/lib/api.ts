@@ -165,8 +165,10 @@ export type Member = {
   gender: string | null;
   is_active: boolean;
   gym_details: GymDetails | null;
-  /** The latest membership (current, upcoming or last expired). */
+  /** The current plan (running, last expired, or not started yet). */
   membership: Membership | null;
+  /** A renewed-early plan that starts after the current one. */
+  next_membership: Membership | null;
   status: MemberStatus;
   /** Unpaid balance across all memberships, past ones included. */
   total_due: string;
@@ -300,9 +302,12 @@ export type AttendanceQuery = {
   page?: number;
 };
 
-/** Renew (any plan; starts after the current one ends) or change plan mid-way (starts today). */
+/**
+ * renew: rejoining (expired / inactive). change_plan: replaces the current plan from start_date.
+ * renew_early: adds the next plan after the current one (last 7 days of an active plan).
+ */
 export type MembershipActionInput = {
-  action: 'renew' | 'change_plan';
+  action: 'renew' | 'change_plan' | 'renew_early';
   member_id: number;
   membership_plan_id: number;
   start_date?: string;
@@ -525,6 +530,9 @@ export const api = {
     request<Paginated<Membership>>(withQuery('/memberships/', { business_account_id, member_id, page })),
   membershipAction: (business_account_id: number, input: MembershipActionInput) =>
     request<Member>(withQuery('/memberships/', { business_account_id }), { method: 'POST', body: input }),
+  /** Cancels a renewed-early next plan (only while it has no payments). */
+  cancelNextPlan: (business_account_id: number, membership_id: number) =>
+    request<Member>(withQuery('/memberships/', { business_account_id, membership_id }), { method: 'DELETE' }),
   updateMembership: (business_account_id: number, membership_id: number, input: MembershipUpdateInput) =>
     request<Member>(withQuery('/memberships/', { business_account_id, membership_id }), { method: 'PUT', body: input }),
   memberActivity: (business_account_id: number, member_id: number, page?: number) =>

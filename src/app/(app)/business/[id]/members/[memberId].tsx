@@ -35,7 +35,7 @@ export default function EditMemberScreen() {
           await api.updateMember(account.id, member.id, input);
           router.back();
         }}
-        header={<MembershipCard member={member} />}
+        header={<MembershipCard member={member} onChange={setMember} />}
         footer={
           <>
             <Card icon="money" title="Payments & History">

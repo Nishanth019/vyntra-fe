@@ -15,6 +15,9 @@ export function membershipStatus(member: Member): { label: string; tone: Tone } 
   }
 
   // Active (a plan covers today).
+  if (member.next_membership) {
+    return { label: `Renewed till ${formatDate(member.next_membership.end_date)}`, tone: 'success' };
+  }
   const days = daysUntil(member.membership.end_date);
   if (days === 0) return { label: 'Ends today', tone: 'warning' };
   if (days <= 7) return { label: `${days} day${days === 1 ? '' : 's'} left`, tone: 'warning' };
