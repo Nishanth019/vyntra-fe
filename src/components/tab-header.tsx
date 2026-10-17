@@ -42,10 +42,10 @@ export function TabHeader({ brand = false, title, subtitle, action }: TabHeaderP
         <HeaderButton icon="menu" label="Open menu" onPress={openMenu} />
         {brand ? (
           <View style={styles.flex}>
-            <Text style={[styles.brand, { color: theme.primary }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+            <Text style={[styles.brand, { color: theme.primary }]} numberOfLines={2}>
               {account.name}
             </Text>
-            <Text style={[styles.tagline, { color: theme.textSecondary }]} numberOfLines={1}>
+            <Text style={[styles.tagline, { color: theme.textSecondary }]} numberOfLines={2}>
               {tagline}
             </Text>
           </View>
@@ -55,10 +55,10 @@ export function TabHeader({ brand = false, title, subtitle, action }: TabHeaderP
               <Icon name="dumbbell" color={theme.primary} size={24} />
             </View>
             <View style={styles.flex}>
-              <Text style={[styles.businessName, { color: theme.text }]} numberOfLines={1}>
+              <Text style={[styles.businessName, { color: theme.text }]} numberOfLines={2}>
                 {account.name}
               </Text>
-              <Text style={[styles.tagline, { color: theme.textSecondary }]} numberOfLines={1}>
+              <Text style={[styles.tagline, { color: theme.textSecondary }]} numberOfLines={2}>
                 {tagline}
               </Text>
             </View>

@@ -68,10 +68,10 @@ export function SideMenu({ visible, onClose }: SideMenuProps) {
               <Text style={[styles.avatarText, { color: theme.primary }]}>{initials(admin?.full_name ?? '')}</Text>
             </View>
             <View style={styles.profileText}>
-              <Text style={[styles.name, { color: theme.onPrimary }]} numberOfLines={1}>
+              <Text style={[styles.name, { color: theme.onPrimary }]} numberOfLines={2}>
                 {admin?.full_name}
               </Text>
-              <Text style={[styles.email, { color: theme.onPrimary }]} numberOfLines={1}>
+              <Text style={[styles.email, { color: theme.onPrimary }]} numberOfLines={2}>
                 {admin?.email}
               </Text>
               <Pressable
@@ -85,7 +85,7 @@ export function SideMenu({ visible, onClose }: SideMenuProps) {
           </View>
 
           <View style={[styles.businessStrip, { backgroundColor: theme.primarySoft }]}>
-            <Text style={[styles.businessStripText, { color: theme.primary }]} numberOfLines={1}>
+            <Text style={[styles.businessStripText, { color: theme.primary }]} numberOfLines={2}>
               {account.name} · ID {account.id}
             </Text>
           </View>
@@ -240,7 +240,7 @@ function MenuRow({ icon, title, subtitle, onPress, tone = 'primary' }: MenuRowPr
       style={({ pressed }) => [styles.row, pressed && { backgroundColor: theme.primarySoft }]}>
       <IconBadge name={icon} tone={tone} />
       <View style={styles.rowText}>
-        <Text style={[styles.rowTitle, { color: tone === 'danger' ? theme.danger : theme.text }]} numberOfLines={1}>
+        <Text style={[styles.rowTitle, { color: tone === 'danger' ? theme.danger : theme.text }]} numberOfLines={2}>
           {title}
         </Text>
         <Text style={[styles.rowSubtitle, { color: theme.textSecondary }]} numberOfLines={1}>

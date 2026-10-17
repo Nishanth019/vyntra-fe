@@ -283,7 +283,7 @@ function Report({
               <View style={[styles.dueAvatar, { backgroundColor: theme.dangerSoft }]}>
                 <Text style={[styles.dueInitial, { color: theme.danger }]}>{row.name.charAt(0).toUpperCase()}</Text>
               </View>
-              <Text style={[styles.dueName, { color: theme.text }]} numberOfLines={1}>
+              <Text style={[styles.dueName, { color: theme.text }]} numberOfLines={2}>
                 {row.name}
               </Text>
               <Text style={[styles.dueAmount, { color: theme.danger }]}>{formatMoney(row.amount)}</Text>

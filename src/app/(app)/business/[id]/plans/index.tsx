@@ -111,7 +111,7 @@ function PlanCard({ plan, icon, onToggle, onPress }: PlanCardProps) {
       ]}>
       <IconBadge name={icon} tone={plan.is_active ? 'primary' : 'neutral'} size={56} />
       <View style={styles.body}>
-        <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
+        <Text style={[styles.name, { color: theme.text }]} numberOfLines={2}>
           {plan.name}
         </Text>
         <Text style={[styles.meta, { color: theme.textSecondary }]}>

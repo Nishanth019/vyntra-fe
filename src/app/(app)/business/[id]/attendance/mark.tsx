@@ -81,24 +81,20 @@ export default function MarkAttendanceScreen() {
       {formError ? <ErrorBanner message={formError} /> : null}
 
       <Card title="Attendance details">
-        <View style={styles.memberRow}>
-          <View style={styles.flex}>
-            <SelectField
-              label="Member name"
-              icon="search"
-              placeholder="Select member"
-              value={member ? `${memberName(member)} (#${member.member_code})` : undefined}
-              error={errors.member}
-              onPress={() => setPickerOpen(true)}
-            />
+        <SelectField
+          label="Member name"
+          icon="search"
+          placeholder="Select member"
+          value={member ? `${memberName(member)} (#${member.member_code})` : undefined}
+          error={errors.member}
+          onPress={() => setPickerOpen(true)}
+        />
+        {status ? (
+          <View style={styles.status}>
+            <Text style={[styles.label, { color: theme.text }]}>Status</Text>
+            <StatusPill {...status} />
           </View>
-          {status ? (
-            <View style={styles.status}>
-              <Text style={[styles.label, { color: theme.text }]}>Status</Text>
-              <StatusPill {...status} />
-            </View>
-          ) : null}
-        </View>
+        ) : null}
 
         {status && status.tone === 'danger' ? (
           <Text style={[styles.note, { color: theme.danger }]}>
@@ -155,14 +151,10 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
-  memberRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.three,
-  },
   status: {
-    gap: Spacing.two,
-    alignItems: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two + 2,
   },
   label: {
     fontSize: 14,

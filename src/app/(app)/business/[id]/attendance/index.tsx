@@ -140,10 +140,9 @@ export default function AttendanceScreen() {
                   params: { ...params, memberId: item.member.id },
                 })
               }
+              badge={<StatusPill label={item.check_out_time ? 'Checked out' : 'Present'} tone="success" />}
               trailing={
-                item.check_out_time || date !== today ? (
-                  <StatusPill label={item.check_out_time ? 'Checked out' : 'Present'} tone="success" />
-                ) : (
+                item.check_out_time || date !== today ? undefined : (
                   <Button
                     title="Check out"
                     variant="secondary"

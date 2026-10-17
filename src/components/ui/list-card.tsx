@@ -32,7 +32,7 @@ export function ListCard({ title, subtitle, onPress, loading = false, disabled =
         <Text style={[styles.badgeText, { color: theme.primary }]}>{title.charAt(0).toUpperCase()}</Text>
       </View>
       <View style={styles.body}>
-        <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
+        <Text style={[styles.title, { color: theme.text }]} numberOfLines={2}>
           {title}
         </Text>
         {subtitle ? (

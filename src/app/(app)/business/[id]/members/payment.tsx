@@ -101,10 +101,10 @@ export default function RecordPaymentScreen() {
               <Text style={[styles.avatarText, { color: theme.primary }]}>{initials(memberName(member))}</Text>
             </View>
             <View style={styles.flex}>
-              <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
+              <Text style={[styles.name, { color: theme.text }]} numberOfLines={2}>
                 {memberName(member)}
               </Text>
-              <Text style={[styles.meta, { color: theme.textSecondary }]} numberOfLines={1}>
+              <Text style={[styles.meta, { color: theme.textSecondary }]} numberOfLines={2}>
                 Plan: <Text style={{ color: theme.text }}>{membership?.membership_plan.name ?? '—'}</Text>
               </Text>
               <Text style={[styles.meta, { color: theme.textSecondary }]}>Member ID: #{member.member_code}</Text>

@@ -49,7 +49,7 @@ function PlanOption({ plan, selected, onPress }: { plan: MembershipPlan; selecte
         {selected ? <View style={[styles.radioDot, { backgroundColor: theme.primary }]} /> : null}
       </View>
       <View style={styles.flex}>
-        <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
+        <Text style={[styles.name, { color: theme.text }]} numberOfLines={2}>
           {plan.name}
         </Text>
         <Text style={[styles.meta, { color: theme.textSecondary }]} numberOfLines={1}>

@@ -14,7 +14,9 @@ type PersonRowProps = {
   details: (string | null | undefined)[];
   /** A line in red under the details, e.g. an amount due. */
   alert?: string;
-  /** Shown on the right, e.g. a status pill. */
+  /** Shown under the name, e.g. a status pill (so long names keep the full width). */
+  badge?: ReactNode;
+  /** Shown on the right, e.g. a Check out button. */
   trailing?: ReactNode;
   /** Greys out the avatar, e.g. for inactive people. */
   muted?: boolean;
@@ -22,7 +24,7 @@ type PersonRowProps = {
 };
 
 /** A tappable card for a person (member, staff, admin) with an initials avatar. */
-export function PersonRow({ name, details, alert, trailing, muted = false, onPress }: PersonRowProps) {
+export function PersonRow({ name, details, alert, badge, trailing, muted = false, onPress }: PersonRowProps) {
   const theme = useTheme();
 
   return (
@@ -42,19 +44,14 @@ export function PersonRow({ name, details, alert, trailing, muted = false, onPre
         </Text>
       </View>
       <View style={styles.body}>
-        <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
-          {name}
-        </Text>
+        <Text style={[styles.name, { color: theme.text }]}>{name}</Text>
         {details.filter(Boolean).map((line, i) => (
-          <Text key={i} style={[styles.detail, { color: theme.textSecondary }]} numberOfLines={1}>
+          <Text key={i} style={[styles.detail, { color: theme.textSecondary }]}>
             {line}
           </Text>
         ))}
-        {alert ? (
-          <Text style={[styles.alert, { color: theme.danger }]} numberOfLines={1}>
-            {alert}
-          </Text>
-        ) : null}
+        {alert ? <Text style={[styles.alert, { color: theme.danger }]}>{alert}</Text> : null}
+        {badge ? <View style={styles.badge}>{badge}</View> : null}
       </View>
       {trailing}
       {onPress ? <Icon name="chevronRight" color={theme.textSecondary} size={18} /> : null}
@@ -73,7 +70,7 @@ export function MemberRow({ member, onPress }: { member: Member; onPress?: () =>
         member.phone,
       ]}
       alert={Number(member.total_due) > 0 ? `Due ${formatMoney(member.total_due)}` : undefined}
-      trailing={<StatusPill {...status} />}
+      badge={<StatusPill {...status} />}
       muted={status.tone === 'neutral'}
       onPress={onPress}
     />
@@ -113,6 +110,10 @@ const styles = StyleSheet.create({
   },
   detail: {
     fontSize: 13,
+  },
+  badge: {
+    flexDirection: 'row',
+    marginTop: Spacing.one + 2,
   },
   alert: {
     fontSize: 13,

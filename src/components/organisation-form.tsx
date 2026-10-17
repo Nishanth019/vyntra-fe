@@ -110,7 +110,7 @@ export function OrganisationForm({ account, submitLabel, onSubmit, footer }: Org
             <Icon name="dumbbell" color={theme.onPrimary} size={34} />
           </View>
           <View style={styles.flex}>
-            <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
+            <Text style={[styles.name, { color: theme.text }]} numberOfLines={2}>
               {values.name.trim() || 'Your organisation'}
             </Text>
             <Text style={[styles.tagline, { color: theme.textSecondary }]} numberOfLines={2}>

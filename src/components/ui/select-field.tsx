@@ -31,7 +31,7 @@ export function SelectField({ label, value, placeholder, icon, error, onPress }:
           pressed && styles.pressed,
         ]}>
         {icon ? <Icon name={icon} color={theme.textSecondary} size={20} /> : null}
-        <Text style={[styles.value, { color: value ? theme.text : theme.textSecondary }]} numberOfLines={1}>
+        <Text style={[styles.value, { color: value ? theme.text : theme.textSecondary }]} numberOfLines={2}>
           {value ?? placeholder}
         </Text>
         <Icon name="chevronDown" color={theme.textSecondary} size={20} />
@@ -53,8 +53,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two + 2,
-    height: 54,
+    minHeight: 54,
     paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
     borderWidth: 1,
     borderRadius: Radius.md,
   },

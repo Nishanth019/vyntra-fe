@@ -104,7 +104,7 @@ export default function StaffScreen() {
               name={memberName(item)}
               details={[item.role, `#${item.employee_code}${item.phone ? ` · ${item.phone}` : ''}`]}
               muted={!item.is_active}
-              trailing={
+              badge={
                 <StatusPill label={item.is_active ? 'Active' : 'Inactive'} tone={item.is_active ? 'success' : 'neutral'} />
               }
               onPress={() =>

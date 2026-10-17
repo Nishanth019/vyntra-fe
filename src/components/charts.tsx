@@ -208,7 +208,7 @@ export function ShareBars({ rows, color }: { rows: ShareRow[]; color: string }) 
             <IconBadge name={row.icon} tone={row.tone} size={44} />
             <View style={styles.shareBody}>
               <View style={styles.shareHeader}>
-                <Text style={[styles.shareLabel, { color: theme.text }]} numberOfLines={1}>
+                <Text style={[styles.shareLabel, { color: theme.text }]} numberOfLines={2}>
                   {row.label}
                 </Text>
                 <Text style={[styles.shareDetail, { color: theme.text }]}>{row.detail}</Text>

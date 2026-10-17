@@ -61,7 +61,7 @@ function AdminCard({ accountAdmin, onEdit }: { accountAdmin: AccountAdmin; onEdi
           <Icon name="person" color={theme.onPrimary} size={28} />
         </View>
         <View style={styles.flex}>
-          <Text style={[styles.name, { color: theme.onPrimary }]} numberOfLines={1}>
+          <Text style={[styles.name, { color: theme.onPrimary }]} numberOfLines={2}>
             {admin.full_name}
             {isSelf ? ' (You)' : ''}
           </Text>

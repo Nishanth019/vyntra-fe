@@ -96,10 +96,10 @@ function ProfileHeader({ admin }: { admin: Admin }) {
           <Text style={[styles.avatarText, { color: theme.onPrimary }]}>{initials(admin.full_name)}</Text>
         </View>
         <View style={styles.flex}>
-          <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
+          <Text style={[styles.name, { color: theme.text }]} numberOfLines={2}>
             {admin.full_name}
           </Text>
-          <Text style={[styles.email, { color: theme.textSecondary }]} numberOfLines={1}>
+          <Text style={[styles.email, { color: theme.textSecondary }]} numberOfLines={2}>
             {admin.email}
           </Text>
           <View style={styles.badges}>
