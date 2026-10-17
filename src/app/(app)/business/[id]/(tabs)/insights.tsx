@@ -1,48 +1,93 @@
 import { router } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { BarChart, ShareBars } from '@/components/charts';
+import { ShareBars, TrendChart, type ChartType } from '@/components/charts';
+import { PeriodPicker } from '@/components/period-picker';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Chip } from '@/components/ui/chip';
 import { ErrorBanner } from '@/components/ui/error-banner';
 import { Icon } from '@/components/ui/icon';
 import { Screen } from '@/components/ui/screen';
 import { LoadingState } from '@/components/ui/states';
+import { TextField } from '@/components/ui/text-field';
 import { Radius, Spacing } from '@/constants/theme';
 import { useResource } from '@/hooks/use-resource';
 import { useTheme } from '@/hooks/use-theme';
 import { api, type Insights } from '@/lib/api';
 import { useBusiness } from '@/lib/business';
-import { formatDate } from '@/lib/dates';
+import { formatDateInput, isValidISODate, parseISODate } from '@/lib/dates';
 import { formatMoney } from '@/lib/format';
 import { getPeriods, type PeriodKey } from '@/lib/periods';
 
 const METHOD_LABELS: Record<string, string> = { CASH: 'Cash', UPI: 'UPI', CARD: 'Card', BANK_TRANSFER: 'Bank' };
+
+const CHART_TYPES: { key: ChartType; label: string }[] = [
+  { key: 'bar', label: 'Bar' },
+  { key: 'line', label: 'Line' },
+  { key: 'table', label: 'Table' },
+];
+
+/** e.g. "Oct 01, 2026". */
+function rangeDate(value: string) {
+  return parseISODate(value).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+}
 
 export default function InsightsScreen() {
   const theme = useTheme();
   const { account } = useBusiness();
   const periods = useMemo(() => getPeriods(), []);
   const [periodKey, setPeriodKey] = useState<PeriodKey>('thisMonth');
-  const period = periods.find((item) => item.key === periodKey)!;
+  const preset = periods.find((item) => item.key === periodKey)!;
+  // Custom range: what's typed, and what's applied.
+  const [customInput, setCustomInput] = useState({ from: preset.from, to: preset.to });
+  const [custom, setCustom] = useState({ from: preset.from, to: preset.to });
+  const [customError, setCustomError] = useState('');
+  const range = periodKey === 'custom' ? custom : preset;
+  const [chartType, setChartType] = useState<ChartType>('bar');
 
   const fetchInsights = useCallback(
-    () => api.insights(account.id, period.from, period.to),
-    [account.id, period.from, period.to],
+    () => api.insights(account.id, range.from, range.to),
+    [account.id, range.from, range.to],
   );
   const { data, error, refreshing, refresh, retry } = useResource(fetchInsights);
+
+  function applyCustom() {
+    const { from, to } = customInput;
+    if (!isValidISODate(from) || !isValidISODate(to)) return setCustomError('Use the format YYYY-MM-DD.');
+    if (to < from) return setCustomError("End date can't be before the start date.");
+    setCustomError('');
+    setCustom({ from, to });
+  }
 
   return (
     <>
       <View style={[styles.toolbar, { borderColor: theme.border }]}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.periods}>
-          {periods.map((item) => (
-            <View key={item.key} style={styles.period}>
-              <Chip label={item.label} selected={item.key === periodKey} onPress={() => setPeriodKey(item.key)} />
-            </View>
-          ))}
-        </ScrollView>
+        <View style={styles.toolbarRow}>
+          <PeriodPicker periods={periods} value={periodKey} onChange={setPeriodKey} />
+          <Text style={[styles.range, { color: theme.textSecondary }]} numberOfLines={2}>
+            {rangeDate(range.from)} – {rangeDate(range.to)}
+          </Text>
+        </View>
+        {periodKey === 'custom' ? (
+          <View style={styles.customRow}>
+            {(['from', 'to'] as const).map((field) => (
+              <View key={field} style={styles.flex}>
+                <TextField
+                  label={field === 'from' ? 'From' : 'To'}
+                  placeholder="YYYY-MM-DD"
+                  keyboardType="number-pad"
+                  maxLength={10}
+                  value={customInput[field]}
+                  onChangeText={(text) => setCustomInput((current) => ({ ...current, [field]: formatDateInput(text) }))}
+                />
+              </View>
+            ))}
+            <Button title="Apply" style={styles.apply} onPress={applyCustom} />
+          </View>
+        ) : null}
+        {customError ? <Text style={[styles.customError, { color: theme.danger }]}>{customError}</Text> : null}
       </View>
 
       {!data ? (
@@ -50,17 +95,22 @@ export default function InsightsScreen() {
       ) : (
         <Screen onRefresh={refresh} refreshing={refreshing} maxWidth={720}>
           {error ? <ErrorBanner message={error} /> : null}
-          <Text style={[styles.range, { color: theme.textSecondary }]}>
-            {formatDate(data.date_from)} – {formatDate(data.date_to)} · compared with the previous period
-          </Text>
-          <Report data={data} />
+          <Report data={data} chartType={chartType} onChartType={setChartType} />
         </Screen>
       )}
     </>
   );
 }
 
-function Report({ data }: { data: Insights }) {
+function Report({
+  data,
+  chartType,
+  onChartType,
+}: {
+  data: Insights;
+  chartType: ChartType;
+  onChartType: (type: ChartType) => void;
+}) {
   const theme = useTheme();
   const { account } = useBusiness();
   const { summary } = data;
@@ -111,8 +161,18 @@ function Report({ data }: { data: Insights }) {
         </View>
       </View>
 
+      <View style={styles.chartTypes}>
+        <Text style={[styles.chartTypesLabel, { color: theme.textSecondary }]}>Graphs</Text>
+        {CHART_TYPES.map((item) => (
+          <View key={item.key} style={styles.flex}>
+            <Chip label={item.label} selected={chartType === item.key} onPress={() => onChartType(item.key)} />
+          </View>
+        ))}
+      </View>
+
       <Card icon="money" title="Collections">
-        <BarChart
+        <TrendChart
+          type={chartType}
           data={data.series.map((bucket) => ({ label: bucket.label, values: [Number(bucket.collections)] }))}
           series={[{ name: 'Collections', color: theme.success }]}
           formatValue={formatMoney}
@@ -120,7 +180,8 @@ function Report({ data }: { data: Insights }) {
       </Card>
 
       <Card icon="people" title="Members">
-        <BarChart
+        <TrendChart
+          type={chartType}
           data={data.series.map((bucket) => ({
             label: bucket.label,
             values: [bucket.new_members, bucket.renewals, bucket.expired],
@@ -134,7 +195,8 @@ function Report({ data }: { data: Insights }) {
       </Card>
 
       <Card icon="checkIn" title="Check-ins">
-        <BarChart
+        <TrendChart
+          type={chartType}
           data={data.series.map((bucket) => ({ label: bucket.label, values: [bucket.attendance] }))}
           series={[{ name: 'Check-ins', color: theme.accent }]}
         />
@@ -241,17 +303,44 @@ function Kpi({ label, value, change, lowerIsBetter = false, hint }: KpiProps) {
 
 const styles = StyleSheet.create({
   toolbar: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  periods: {
     gap: Spacing.two,
     padding: Spacing.three,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  period: {
-    width: 116,
+  toolbarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.three,
   },
   range: {
+    flexShrink: 1,
+    fontSize: 14,
+    textAlign: 'right',
+  },
+  customRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: Spacing.two,
+  },
+  flex: {
+    flex: 1,
+  },
+  apply: {
+    height: 48,
+    paddingHorizontal: Spacing.three,
+  },
+  customError: {
     fontSize: 13,
+  },
+  chartTypes: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  chartTypesLabel: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   grid: {
     gap: Spacing.three,
