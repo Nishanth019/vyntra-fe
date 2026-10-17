@@ -19,6 +19,7 @@ import { api, ApiError, type Member, type MemberInput, type MembershipPlan } fro
 import { useBusiness } from '@/lib/business';
 import { isValidISODate, toISODate } from '@/lib/dates';
 import { formatMoney, memberName } from '@/lib/format';
+import { paymentAmountError } from '@/lib/payments';
 
 const GENDERS: { value: string; icon: IconName }[] = [
   { value: 'Male', icon: 'male' },
@@ -152,8 +153,9 @@ export function MemberForm({
         if (!(value >= 0)) next.discount = 'Enter a valid discount.';
         else if (value > Number(plan.amount)) next.discount = "Discount can't exceed the plan amount.";
       }
-      if (recordPayment && !(Number(payment.amount || payable || 0) > 0)) {
-        next.payment_amount = 'Enter the amount received.';
+      if (recordPayment && plan) {
+        const amountError = paymentAmountError(payment.amount, payable ?? 0);
+        if (amountError) next.payment_amount = amountError;
       }
     }
     return next;
@@ -203,7 +205,7 @@ export function MemberForm({
     }
     if (!member && recordPayment) {
       input.payment = {
-        amount: Number(payment.amount || payable).toFixed(2),
+        amount: Number(payment.amount).toFixed(2),
         payment_method: payment.method,
         ...(payment.reference.trim() ? { transaction_reference: payment.reference.trim() } : {}),
         ...(payment.notes.trim() ? { notes: payment.notes.trim() } : {}),
@@ -402,7 +404,7 @@ export function MemberForm({
               <TextField
                 label="Amount Received (₹)"
                 icon="money"
-                placeholder={payable !== undefined ? String(payable) : 'Amount'}
+                placeholder={payable !== undefined ? `Up to ${payable}` : 'Choose a plan first'}
                 keyboardType="decimal-pad"
                 value={payment.amount}
                 onChangeText={(text) => {

@@ -17,6 +17,7 @@ import { api, ApiError, type Member } from '@/lib/api';
 import { useBusiness } from '@/lib/business';
 import { isValidISODate, toISODate } from '@/lib/dates';
 import { formatMoney, initials, memberName } from '@/lib/format';
+import { paymentAmountError } from '@/lib/payments';
 
 export default function RecordPaymentScreen() {
   const theme = useTheme();
@@ -52,7 +53,11 @@ export default function RecordPaymentScreen() {
   async function submit() {
     const nextErrors: typeof errors = {};
     if (!member) nextErrors.member = 'Select a member.';
-    if (!(Number(amount) > 0)) nextErrors.amount = 'Enter the amount received.';
+    // Like the server: the current plan first, then (once it's paid up) a waiting future plan.
+    const current = member?.membership ? Number(member.membership.balance) : 0;
+    const due = current > 0 ? current : Number(member?.next_membership?.balance ?? 0);
+    const amountError = member?.membership ? paymentAmountError(amount, due) : Number(amount) > 0 ? '' : 'Enter the amount received.';
+    if (amountError) nextErrors.amount = amountError;
     if (!isValidISODate(date)) nextErrors.date = 'Choose the payment date.';
     else if (date > today) nextErrors.date = "Payment date can't be in the future.";
     setErrors(nextErrors);

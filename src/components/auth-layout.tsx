@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Gradient } from '@/components/ui/gradient';
 import { Icon } from '@/components/ui/icon';
 import { MaxFormWidth, Radius, shadow, Spacing } from '@/constants/theme';
+import { useKeyboardInset } from '@/hooks/use-keyboard-inset';
 import { useTheme } from '@/hooks/use-theme';
 
 type AuthLayoutProps = PropsWithChildren<{
@@ -17,9 +18,10 @@ type AuthLayoutProps = PropsWithChildren<{
 
 export function AuthLayout({ title, subtitle, footer, children }: AuthLayoutProps) {
   const theme = useTheme();
+  const keyboard = useKeyboardInset();
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background, paddingBottom: keyboard }]}>
       <View style={styles.art}>
         <Icon name="dumbbell" color={theme.primary} size={260} />
       </View>

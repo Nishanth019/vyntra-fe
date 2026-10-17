@@ -21,6 +21,7 @@ import { useBusiness } from '@/lib/business';
 import { confirm } from '@/lib/confirm';
 import { addDays, daysUntil, formatDate, isValidISODate, parseISODate, toISODate } from '@/lib/dates';
 import { formatMoney, memberName } from '@/lib/format';
+import { paymentAmountError } from '@/lib/payments';
 
 const TITLES: Record<PlanMode, string> = {
   renew: 'Renew Membership',
@@ -103,15 +104,16 @@ function NewPlanForm({ mode, member, plans }: { mode: NewPlanMode; member: Membe
       next.start_date = `Pick a date from ${formatDate(changeFrom)} to ${formatDate(changeTo)}.`;
     }
     if (discount && plan && Number(discount) > Number(plan.amount)) next.discount = "Discount can't exceed the plan amount.";
-    const amount = Number(payment.amount || payable);
-    if (recordPayment && !(amount > 0)) next.payment_amount = 'Enter the amount received.';
+    const amount = Number(payment.amount);
+    const amountError = recordPayment && plan ? paymentAmountError(payment.amount, payable) : '';
+    if (amountError) next.payment_amount = amountError;
     setErrors(next);
     if (Object.keys(next).length > 0 || !plan) return;
 
     if (mode === 'change' && member.membership) {
       const ok = await confirm(
         'Replace the current plan?',
-        `${member.membership.membership_plan.name} will be closed, and its payments and dues will no longer count. ` +
+        `${member.membership.membership_plan.name} will be removed with its payments, so they no longer count in collections or dues. ` +
           `${plan.name} from ${formatDate(startDate)} becomes the current plan.`,
         'Replace Plan',
       );
@@ -209,7 +211,7 @@ function NewPlanForm({ mode, member, plans }: { mode: NewPlanMode; member: Membe
             <TextField
               label="Amount Received (₹)"
               icon="money"
-              placeholder={String(payable)}
+              placeholder={`Up to ${payable}`}
               keyboardType="decimal-pad"
               value={payment.amount}
               onChangeText={(text) => setPayment((current) => ({ ...current, amount: text.replace(/[^\d.]/g, '') }))}
