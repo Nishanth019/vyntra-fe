@@ -14,7 +14,7 @@ export function membershipStatus(member: Member): { label: string; tone: Tone } 
     return { label: `Starts ${formatDate(member.membership.start_date)}`, tone: 'accent' };
   }
 
-  // Live. For an early renewal the active membership is the next one, so this counts to its end.
+  // Active (a plan covers today).
   const days = daysUntil(member.membership.end_date);
   if (days === 0) return { label: 'Ends today', tone: 'warning' };
   if (days <= 7) return { label: `${days} day${days === 1 ? '' : 's'} left`, tone: 'warning' };

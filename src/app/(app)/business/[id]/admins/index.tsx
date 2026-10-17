@@ -99,7 +99,12 @@ function InfoTile({ icon, label, value }: { icon: IconName; label: string; value
         <Icon name={icon} color={theme.textSecondary} size={16} />
         <Text style={[styles.tileLabel, { color: theme.textSecondary }]}>{label}</Text>
       </View>
-      <Text style={[styles.tileValue, { color: theme.text }]} numberOfLines={1} selectable>
+      <Text
+        style={[styles.tileValue, { color: theme.text }]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.7}
+        selectable>
         {value}
       </Text>
     </View>
@@ -158,7 +163,6 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
   },
   tiles: {
-    flexDirection: 'row',
     gap: Spacing.two + 2,
   },
   tile: {

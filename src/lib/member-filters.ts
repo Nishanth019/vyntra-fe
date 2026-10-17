@@ -29,8 +29,8 @@ function endingBetween(today: Date, from?: number, to?: number) {
 
 export const MEMBER_FILTERS: MemberFilter[] = [
   { key: 'all', label: 'All Members', query: () => ({}) },
-  { key: 'live', label: 'Live Memberships', query: () => ({ status: 'live' }) },
-  { key: 'expired', label: 'Expired Memberships', query: () => ({ status: 'expired' }) },
+  { key: 'live', label: 'Active Members', query: () => ({ status: 'live' }) },
+  { key: 'expired', label: 'Expired Members', query: () => ({ status: 'expired' }) },
   { key: 'expiring3', label: 'Expiring (0–3 Days)', query: (today) => endingBetween(today, 0, 3) },
   { key: 'expiring7', label: 'Expiring (4–7 Days)', query: (today) => endingBetween(today, 4, 7) },
   { key: 'expiring15', label: 'Expiring (8–15 Days)', query: (today) => endingBetween(today, 8, 15) },

@@ -1,37 +1,59 @@
-import { router, Tabs, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router, Tabs, useLocalSearchParams } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
-import { MemberRow } from '@/components/member-row';
-import { Button } from '@/components/ui/button';
-import { Chip } from '@/components/ui/chip';
-import { ErrorBanner } from '@/components/ui/error-banner';
-import { HeaderButton } from '@/components/ui/header-button';
-import { EmptyState } from '@/components/ui/states';
-import { TextField } from '@/components/ui/text-field';
-import { Radius, Spacing } from '@/constants/theme';
-import { usePaginatedList } from '@/hooks/use-paginated-list';
-import { useResource } from '@/hooks/use-resource';
-import { useTheme } from '@/hooks/use-theme';
-import { api } from '@/lib/api';
-import { useBusiness } from '@/lib/business';
+import { MemberRow } from "@/components/member-row";
+import { Button } from "@/components/ui/button";
+import { Chip } from "@/components/ui/chip";
+import { ErrorBanner } from "@/components/ui/error-banner";
+import { HeaderButton } from "@/components/ui/header-button";
+import { EmptyState } from "@/components/ui/states";
+import { TextField } from "@/components/ui/text-field";
+import { Radius, Spacing } from "@/constants/theme";
+import { usePaginatedList } from "@/hooks/use-paginated-list";
+import { useResource } from "@/hooks/use-resource";
+import { useTheme } from "@/hooks/use-theme";
+import { api } from "@/lib/api";
+import { useBusiness } from "@/lib/business";
 import {
   AUTO_INACTIVE_NOTE,
   fetchMemberCounts,
   isMemberFilterKey,
   MEMBER_FILTERS,
   type MemberFilterKey,
-} from '@/lib/member-filters';
+} from "@/lib/member-filters";
 
 export default function MembersScreen() {
   const theme = useTheme();
   const { account } = useBusiness();
   const params = useLocalSearchParams<{ filter?: string }>();
 
-  const [filter, setFilter] = useState<MemberFilterKey>(isMemberFilterKey(params.filter) ? params.filter : 'all');
+  const [filter, setFilter] = useState<MemberFilterKey>(
+    isMemberFilterKey(params.filter) ? params.filter : "all",
+  );
   const [searchOpen, setSearchOpen] = useState(false);
-  const [searchText, setSearchText] = useState('');
-  const [search, setSearch] = useState('');
+  const [searchText, setSearchText] = useState("");
+  const [search, setSearch] = useState("");
+
+  // Keeps the selected filter chip in view (e.g. "Dues Pending" opened from Home).
+  const chipsRef = useRef<ScrollView>(null);
+  const chipX = useRef<Partial<Record<MemberFilterKey, number>>>({});
+  useEffect(() => {
+    const x = chipX.current[filter];
+    if (x !== undefined)
+      chipsRef.current?.scrollTo({
+        x: Math.max(0, x - Spacing.three),
+        animated: true,
+      });
+  }, [filter]);
 
   // Home tiles and notifications open this tab with a filter.
   useEffect(() => {
@@ -39,7 +61,10 @@ export default function MembersScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.filter]);
 
-  const fetchCounts = useCallback(() => fetchMemberCounts(account.id), [account.id]);
+  const fetchCounts = useCallback(
+    () => fetchMemberCounts(account.id),
+    [account.id],
+  );
   const { data: counts, refresh: refreshCounts } = useResource(fetchCounts);
 
   // Wait until typing pauses before searching.
@@ -50,8 +75,15 @@ export default function MembersScreen() {
 
   const fetchPage = useCallback(
     (page: number) => {
-      const query = MEMBER_FILTERS.find((item) => item.key === filter)!.query(new Date());
-      return api.members({ business_account_id: account.id, ...query, search: search || undefined, page });
+      const query = MEMBER_FILTERS.find((item) => item.key === filter)!.query(
+        new Date(),
+      );
+      return api.members({
+        business_account_id: account.id,
+        ...query,
+        search: search || undefined,
+        page,
+      });
     },
     [account.id, filter, search],
   );
@@ -69,11 +101,15 @@ export default function MembersScreen() {
   }
 
   function toggleSearch() {
-    if (searchOpen) setSearchText('');
+    if (searchOpen) setSearchText("");
     setSearchOpen(!searchOpen);
   }
 
-  const addMember = () => router.push({ pathname: '/business/[id]/members/new', params: { id: account.id } });
+  const addMember = () =>
+    router.push({
+      pathname: "/business/[id]/members/new",
+      params: { id: account.id },
+    });
 
   return (
     <>
@@ -81,17 +117,41 @@ export default function MembersScreen() {
         options={{
           headerRight: () => (
             <View style={styles.headerActions}>
-              <HeaderButton icon={searchOpen ? 'close' : 'search'} label="Search members" onPress={toggleSearch} />
-              <HeaderButton icon="personAdd" label="Add member" onPress={addMember} />
+              <HeaderButton
+                icon={searchOpen ? "close" : "search"}
+                label="Search members"
+                onPress={toggleSearch}
+              />
+              <HeaderButton
+                icon="personAdd"
+                label="Add member"
+                onPress={addMember}
+              />
             </View>
           ),
         }}
       />
 
       <View style={[styles.toolbar, { borderColor: theme.border }]}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
+        <ScrollView
+          ref={chipsRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filters}
+        >
           {MEMBER_FILTERS.map((item) => (
-            <View key={item.key} style={styles.filter}>
+            <View
+              key={item.key}
+              style={styles.filter}
+              onLayout={(event) => {
+                chipX.current[item.key] = event.nativeEvent.layout.x;
+                if (item.key === filter)
+                  chipsRef.current?.scrollTo({
+                    x: Math.max(0, event.nativeEvent.layout.x - Spacing.three),
+                    animated: false,
+                  });
+              }}
+            >
               <Chip
                 label={item.label}
                 count={counts?.[item.key] ?? 0}
@@ -118,9 +178,11 @@ export default function MembersScreen() {
         ) : null}
       </View>
 
-      {filter === 'expired' || filter === 'inactive' ? (
+      {filter === "expired" || filter === "inactive" ? (
         <View style={[styles.note, { backgroundColor: theme.primarySoft }]}>
-          <Text style={[styles.noteText, { color: theme.primary }]}>{AUTO_INACTIVE_NOTE}</Text>
+          <Text style={[styles.noteText, { color: theme.primary }]}>
+            {AUTO_INACTIVE_NOTE}
+          </Text>
         </View>
       ) : null}
 
@@ -131,7 +193,13 @@ export default function MembersScreen() {
       ) : null}
 
       {!list.items ? (
-        list.error ? null : <ActivityIndicator color={theme.primary} size="large" style={styles.loader} />
+        list.error ? null : (
+          <ActivityIndicator
+            color={theme.primary}
+            size="large"
+            style={styles.loader}
+          />
+        )
       ) : (
         <FlatList
           data={list.items}
@@ -141,7 +209,7 @@ export default function MembersScreen() {
               member={item}
               onPress={() =>
                 router.push({
-                  pathname: '/business/[id]/members/[memberId]',
+                  pathname: "/business/[id]/members/[memberId]",
                   params: { id: account.id, memberId: item.id },
                 })
               }
@@ -151,17 +219,37 @@ export default function MembersScreen() {
           keyboardShouldPersistTaps="handled"
           onEndReached={list.loadMore}
           onEndReachedThreshold={0.4}
-          refreshControl={<RefreshControl refreshing={list.refreshing} onRefresh={refresh} tintColor={theme.primary} />}
-          ListFooterComponent={list.loadingMore ? <ActivityIndicator color={theme.primary} /> : null}
+          refreshControl={
+            <RefreshControl
+              refreshing={list.refreshing}
+              onRefresh={refresh}
+              tintColor={theme.primary}
+            />
+          }
+          ListFooterComponent={
+            list.loadingMore ? (
+              <ActivityIndicator color={theme.primary} />
+            ) : null
+          }
           ListEmptyComponent={
             <EmptyState
               icon="personOff"
               title="No Members Found"
               message={
-                search ? `Nobody matches "${search}".` : filter === 'all' ? 'Add your first member to get started.' : undefined
+                search
+                  ? `Nobody matches "${search}".`
+                  : filter === "all"
+                    ? "Add your first member to get started."
+                    : undefined
               }
               action={
-                filter === 'all' && !search ? <Button title="Add Member" icon="personAdd" onPress={addMember} /> : null
+                filter === "all" && !search ? (
+                  <Button
+                    title="Add Member"
+                    icon="personAdd"
+                    onPress={addMember}
+                  />
+                ) : null
               }
             />
           }
@@ -173,7 +261,7 @@ export default function MembersScreen() {
 
 const styles = StyleSheet.create({
   headerActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: Spacing.three,
   },
   toolbar: {
@@ -184,7 +272,7 @@ const styles = StyleSheet.create({
     padding: Spacing.three,
   },
   filter: {
-    width: 128,
+    minWidth: 112,
   },
   search: {
     paddingHorizontal: Spacing.three,

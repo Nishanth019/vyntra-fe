@@ -1,5 +1,5 @@
-import { router } from 'expo-router';
-import { useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { ErrorBanner } from '@/components/ui/error-banner';
@@ -9,14 +9,28 @@ import { EmptyState, LoadingState } from '@/components/ui/states';
 import { Spacing } from '@/constants/theme';
 import { useResource } from '@/hooks/use-resource';
 import { api, ApiError, type BusinessType } from '@/lib/api';
+import { defaultBusiness } from '@/lib/default-business';
 import { useSession } from '@/lib/session';
 
 const fetchBusinessTypes = () => api.businessTypes().then(({ results }) => results);
 
-/** First screen after login: the admin picks which kind of business they run. */
+/**
+ * First screen after login: opens the admin's default business, or lets them pick a business type.
+ * `?switch=1` (Switch Business) always shows the picker.
+ */
 export default function BusinessTypesScreen() {
   const { admin } = useSession();
+  const { switch: switching } = useLocalSearchParams<{ switch?: string }>();
+  const [checkingDefault, setCheckingDefault] = useState(!switching);
   const { data: types, error, refreshing, refresh, retry } = useResource(fetchBusinessTypes);
+
+  useEffect(() => {
+    if (switching || !admin) return;
+    defaultBusiness.get(admin.id).then((id) => {
+      if (id) router.replace({ pathname: '/business/[id]', params: { id } });
+      else setCheckingDefault(false);
+    });
+  }, [admin, switching]);
 
   const [openError, setOpenError] = useState('');
   const [openingId, setOpeningId] = useState<number | null>(null);
@@ -39,7 +53,7 @@ export default function BusinessTypesScreen() {
     }
   }
 
-  if (!types) return <LoadingState error={error} onRetry={retry} />;
+  if (checkingDefault || !types) return <LoadingState error={checkingDefault ? '' : error} onRetry={retry} />;
 
   return (
     <Screen

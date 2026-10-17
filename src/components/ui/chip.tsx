@@ -29,7 +29,13 @@ export function Chip({ label, selected, onPress, detail, count }: ChipProps) {
           : { backgroundColor: theme.surface, borderColor: theme.border },
         pressed && styles.pressed,
       ]}>
-      <Text style={[styles.label, { color: selected ? theme.primary : theme.text }]}>{label}</Text>
+      <Text
+        style={[styles.label, { color: selected ? theme.primary : theme.text }]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.75}>
+        {label}
+      </Text>
       {detail ? <Text style={[styles.detail, { color: theme.textSecondary }]}>{detail}</Text> : null}
       {count !== undefined ? (
         <View style={[styles.count, { backgroundColor: selected ? theme.primary : theme.primarySoft }]}>
@@ -44,7 +50,7 @@ const styles = StyleSheet.create({
   chip: {
     borderWidth: 1.5,
     borderRadius: Radius.md,
-    paddingHorizontal: Spacing.three,
+    paddingHorizontal: Spacing.two,
     paddingVertical: Spacing.two + 2,
     alignItems: 'center',
     gap: 2,

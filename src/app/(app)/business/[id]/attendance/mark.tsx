@@ -7,16 +7,16 @@ import { membershipStatus, StatusPill } from '@/components/status-pill';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Chip } from '@/components/ui/chip';
+import { DateField } from '@/components/ui/date-field';
 import { ErrorBanner } from '@/components/ui/error-banner';
 import { Icon } from '@/components/ui/icon';
 import { Screen } from '@/components/ui/screen';
 import { SelectField } from '@/components/ui/select-field';
-import { TextField } from '@/components/ui/text-field';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { api, ApiError, type Member } from '@/lib/api';
 import { useBusiness } from '@/lib/business';
-import { addDays, daysUntil, formatDateInput, formatLongDate, isValidISODate, toISODate } from '@/lib/dates';
+import { addDays, daysUntil, formatLongDate, isValidISODate, toISODate } from '@/lib/dates';
 import { memberName } from '@/lib/format';
 
 const MAX_PAST_DAYS = 30;
@@ -50,7 +50,7 @@ export default function MarkAttendanceScreen() {
   async function submit() {
     const nextErrors: typeof errors = {};
     if (!member) nextErrors.member = 'Select a member.';
-    if (!isValidISODate(date)) nextErrors.date = 'Use the format YYYY-MM-DD.';
+    if (!isValidISODate(date)) nextErrors.date = 'Choose a date.';
     else if (date > today) nextErrors.date = "Attendance can't be marked for a future date.";
     else if (-daysUntil(date) > MAX_PAST_DAYS) nextErrors.date = `Only the last ${MAX_PAST_DAYS} days can be marked.`;
     setErrors(nextErrors);
@@ -116,16 +116,12 @@ export default function MarkAttendanceScreen() {
               <Chip label="Yesterday" selected={date === yesterday} onPress={() => pickDate(yesterday)} />
             </View>
           </View>
-          <TextField
-            label="Attendance date"
-            hideLabel
-            icon="calendar"
-            placeholder="YYYY-MM-DD"
-            keyboardType="number-pad"
-            maxLength={10}
+          <DateField
+            label="Or pick a date"
             value={date}
-            onChangeText={(text) => pickDate(formatDateInput(text))}
+            onChange={pickDate}
             error={errors.date}
+            maximumDate={new Date()}
           />
           {isValidISODate(date) ? (
             <Text style={[styles.note, { color: theme.textSecondary }]}>{formatLongDate(date)}</Text>

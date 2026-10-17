@@ -39,7 +39,13 @@ export function SideMenu({ visible, onClose }: SideMenuProps) {
   }
 
   return (
-    <Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      navigationBarTranslucent
+      onRequestClose={onClose}>
       <View style={styles.overlay}>
         <Animated.View
           entering={SlideInLeft.duration(220)}
@@ -85,7 +91,7 @@ export function SideMenu({ visible, onClose }: SideMenuProps) {
                 subtitle="Open another organisation"
                 onPress={() => {
                   onClose();
-                  router.dismissTo('/');
+                  router.replace({ pathname: '/', params: { switch: '1' } });
                 }}
               />
             </Section>
@@ -96,6 +102,12 @@ export function SideMenu({ visible, onClose }: SideMenuProps) {
                 title="Dashboard"
                 subtitle="Today at a glance"
                 onPress={() => tab({ pathname: '/business/[id]', params })}
+              />
+              <MenuRow
+                icon="plans"
+                title="Membership Plans"
+                subtitle="Prices and durations"
+                onPress={() => go({ pathname: '/business/[id]/plans', params })}
               />
               <MenuRow
                 icon="people"
@@ -114,12 +126,6 @@ export function SideMenu({ visible, onClose }: SideMenuProps) {
                 title="Attendance"
                 subtitle="Track member attendance"
                 onPress={() => go({ pathname: '/business/[id]/attendance', params })}
-              />
-              <MenuRow
-                icon="plans"
-                title="Membership Plans"
-                subtitle="Prices and durations"
-                onPress={() => go({ pathname: '/business/[id]/plans', params })}
               />
               <MenuRow
                 icon="staff"

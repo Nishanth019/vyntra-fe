@@ -11,17 +11,13 @@ import { useBusiness } from '@/lib/business';
 import { formatDate } from '@/lib/dates';
 import { formatMoney } from '@/lib/format';
 import { AUTO_INACTIVE_NOTE } from '@/lib/member-filters';
-import { openWhatsApp, whatsappText, type WhatsAppMessage } from '@/lib/whatsapp';
 
 export type PlanMode = 'renew' | 'change' | 'extend' | 'edit';
 
-const WHATSAPP_BUTTONS: { kind: WhatsAppMessage; title: string }[] = [
-  { kind: 'reminder', title: 'Reminder' },
-  { kind: 'dues', title: 'Dues' },
-  { kind: 'receipt', title: 'Receipt' },
-];
-
-/** The member's current plan with dues, plan actions and WhatsApp shortcuts. */
+/**
+ * The member's current plan with its dues and actions. Running plans can be changed or extended;
+ * expired / inactive members (or ones without a plan) are renewed when they rejoin.
+ */
 export function MembershipCard({ member }: { member: Member }) {
   const theme = useTheme();
   const { account } = useBusiness();
@@ -30,12 +26,7 @@ export function MembershipCard({ member }: { member: Member }) {
     router.push({ pathname: '/business/[id]/members/plan', params: { id: account.id, memberId: member.id, mode } });
 
   const balance = Number(membership?.balance ?? 0);
-  const olderDues = Number(member.total_due) - Math.max(balance, 0);
-  const whatsapp = member.phone
-    ? WHATSAPP_BUTTONS.map((button) => ({ ...button, text: whatsappText(button.kind, member, account) })).filter(
-        (button) => button.text,
-      )
-    : [];
+  const running = member.status === 'live' || member.status === 'upcoming';
 
   return (
     <Card icon="plans" title="Membership" action={<StatusPill {...membershipStatus(member)} />}>
@@ -59,11 +50,6 @@ export function MembershipCard({ member }: { member: Member }) {
               Includes {formatMoney(membership.discount)} discount on {formatMoney(membership.amount)}.
             </Text>
           ) : null}
-          {olderDues > 0 ? (
-            <Text style={[styles.note, { color: theme.danger }]}>
-              + {formatMoney(olderDues)} still due from earlier plans (total due {formatMoney(member.total_due)}).
-            </Text>
-          ) : null}
         </View>
       ) : (
         <Text style={[styles.note, { color: theme.textSecondary }]}>No plan yet.</Text>
@@ -73,40 +59,20 @@ export function MembershipCard({ member }: { member: Member }) {
         <Text style={[styles.note, { color: theme.textSecondary }]}>{AUTO_INACTIVE_NOTE}</Text>
       ) : null}
 
-      <View style={styles.row}>
+      {running ? (
+        <View style={styles.row}>
+          <Button title="Change Plan" icon="swap" style={styles.flex} onPress={() => open('change')} />
+          <Button title="Extend" icon="pause" variant="secondary" style={styles.flex} onPress={() => open('extend')} />
+        </View>
+      ) : (
         <Button
           title={member.status === 'inactive' ? 'Renew & Reactivate' : 'Renew'}
           icon="renew"
-          style={styles.flex}
           onPress={() => open('renew')}
         />
-        {membership && member.status === 'live' ? (
-          <Button title="Change Plan" icon="swap" variant="secondary" style={styles.flex} onPress={() => open('change')} />
-        ) : null}
-      </View>
+      )}
       {membership ? (
-        <View style={styles.row}>
-          <Button title="Extend" icon="pause" variant="secondary" style={styles.flex} onPress={() => open('extend')} />
-          <Button title="Edit" icon="edit" variant="secondary" style={styles.flex} onPress={() => open('edit')} />
-        </View>
-      ) : null}
-
-      {whatsapp.length > 0 ? (
-        <View style={styles.whatsapp}>
-          <Text style={[styles.whatsappTitle, { color: theme.textSecondary }]}>Send on WhatsApp</Text>
-          <View style={styles.row}>
-            {whatsapp.map((button) => (
-              <Button
-                key={button.kind}
-                title={button.title}
-                icon="chat"
-                variant="secondary"
-                style={styles.flex}
-                onPress={() => openWhatsApp(member.phone!, button.text!)}
-              />
-            ))}
-          </View>
-        </View>
+        <Button title="Edit Dates / Discount" icon="edit" variant="secondary" onPress={() => open('edit')} />
       ) : null}
     </Card>
   );
@@ -163,12 +129,5 @@ const styles = StyleSheet.create({
   },
   flex: {
     flex: 1,
-  },
-  whatsapp: {
-    gap: Spacing.two,
-  },
-  whatsappTitle: {
-    fontSize: 13,
-    fontWeight: '600',
   },
 });

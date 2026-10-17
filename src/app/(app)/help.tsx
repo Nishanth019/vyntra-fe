@@ -30,9 +30,9 @@ const FAQS = [
       'Open the member, turn on Payment, enter the amount and method, and save. It is added to their current membership and shows in Payment History.',
   },
   {
-    question: 'What do Live, Expired and Expiring mean?',
+    question: 'What do Active, Expired, Inactive and Expiring mean?',
     answer:
-      'Live members have a membership that ends today or later. Expired members are still active but their membership end date has passed. Expiring shows memberships ending in the next 0–3, 4–7 or 8–15 days, so you can follow up before they lapse.',
+      'Active members have a plan running today. Expired members\' plan has ended; 1 week after that they move to Inactive automatically (you can also deactivate someone yourself). Renew an expired or inactive member when they come back. Expiring shows plans ending in the next 0–3, 4–7 or 8–15 days, so you can follow up in time.',
   },
   {
     question: 'How do I mark attendance?',

@@ -7,6 +7,7 @@ import { PlanOption } from '@/components/plan-option';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Chip } from '@/components/ui/chip';
+import { DateField } from '@/components/ui/date-field';
 import { ErrorBanner } from '@/components/ui/error-banner';
 import { Screen } from '@/components/ui/screen';
 import { LoadingState } from '@/components/ui/states';
@@ -16,7 +17,7 @@ import { useResource } from '@/hooks/use-resource';
 import { useTheme } from '@/hooks/use-theme';
 import { api, ApiError, type Member, type MembershipPlan } from '@/lib/api';
 import { useBusiness } from '@/lib/business';
-import { addDays, daysUntil, formatDate, formatDateInput, isValidISODate, parseISODate, toISODate } from '@/lib/dates';
+import { addDays, formatDate, isValidISODate, parseISODate, toISODate } from '@/lib/dates';
 import { formatMoney, memberName } from '@/lib/format';
 import { PAYMENT_METHODS } from '@/lib/payments';
 
@@ -60,32 +61,14 @@ export default function MembershipPlanScreen() {
   );
 }
 
-/** Value of the current plan's unused days from today: credited when changing plan mid-way. */
-function unusedCredit(member: Member) {
-  const membership = member.membership;
-  // An upcoming renewal is swapped in place, so there's nothing to credit.
-  if (!membership || daysUntil(membership.start_date) > 0) return 0;
-  const totalDays = daysUntil(membership.end_date) - daysUntil(membership.start_date) + 1;
-  // Today onwards is unused (the old plan ends yesterday); all of it if it hasn't started yet.
-  const unusedDays = Math.min(daysUntil(membership.end_date) + 1, totalDays);
-  if (totalDays <= 0 || unusedDays <= 0) return 0;
-  return Math.round((Number(membership.net_payable) * unusedDays) / totalDays);
-}
-
-function defaultRenewalStart(member: Member) {
-  const end = member.membership?.end_date;
-  return end && daysUntil(end) >= 0 ? toISODate(addDays(parseISODate(end), 1)) : toISODate(new Date());
-}
-
 function NewPlanForm({ mode, member, plans }: { mode: 'renew' | 'change'; member: Member; plans: MembershipPlan[] }) {
   const theme = useTheme();
   const { account } = useBusiness();
-  const credit = mode === 'change' ? unusedCredit(member) : 0;
 
   const currentPlanId = member.membership?.membership_plan.id ?? null;
   const [planId, setPlanId] = useState<number | null>(mode === 'renew' ? currentPlanId : null);
-  const [startDate, setStartDate] = useState(defaultRenewalStart(member));
-  const [discount, setDiscount] = useState(credit ? String(credit) : '');
+  const [startDate, setStartDate] = useState(toISODate(new Date()));
+  const [discount, setDiscount] = useState('');
   const [recordPayment, setRecordPayment] = useState(true);
   const [payment, setPayment] = useState({ amount: '', method: 'CASH', reference: '' });
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
@@ -99,7 +82,7 @@ function NewPlanForm({ mode, member, plans }: { mode: 'renew' | 'change'; member
   async function save() {
     const next: Record<string, string> = {};
     if (!plan) next.membership_plan_id = 'Choose a plan.';
-    if (mode === 'renew' && !isValidISODate(startDate)) next.start_date = 'Use the format YYYY-MM-DD.';
+    if (!isValidISODate(startDate)) next.start_date = 'Choose a start date.';
     if (discount && plan && Number(discount) > Number(plan.amount)) next.discount = "Discount can't exceed the plan amount.";
     const amount = Number(payment.amount || payable);
     if (recordPayment && !(amount > 0)) next.payment_amount = 'Enter the amount received.';
@@ -113,7 +96,7 @@ function NewPlanForm({ mode, member, plans }: { mode: 'renew' | 'change'; member
         action: mode === 'renew' ? 'renew' : 'change_plan',
         member_id: member.id,
         membership_plan_id: plan.id,
-        ...(mode === 'renew' ? { start_date: startDate } : {}),
+        start_date: startDate,
         ...(discount ? { discount: Number(discount).toFixed(2) } : {}),
         ...(recordPayment
           ? {
@@ -144,10 +127,8 @@ function NewPlanForm({ mode, member, plans }: { mode: 'renew' | 'change'; member
         title={memberName(member)}
         subtitle={
           mode === 'renew'
-            ? 'Pick any plan, including the same one. The current plan stays in their history.'
-            : member.membership && daysUntil(member.membership.start_date) > 0
-              ? `Replaces the upcoming plan starting ${formatDate(member.membership.start_date)}.`
-              : 'The current plan ends yesterday and the new one starts today.'
+            ? 'Rejoining: pick their new plan. Earlier plans stay in their history.'
+            : 'A completely new plan from the start date. The current plan ends the day before, and only the new plan counts for dues.'
         }>
         <View style={styles.plans}>
           {plans.map((item) => (
@@ -156,27 +137,21 @@ function NewPlanForm({ mode, member, plans }: { mode: 'renew' | 'change'; member
         </View>
         {errors.membership_plan_id ? <Text style={[styles.error, { color: theme.danger }]}>{errors.membership_plan_id}</Text> : null}
 
-        {mode === 'renew' ? (
-          <TextField
-            label="Start Date"
-            required
-            icon="calendar"
-            placeholder="YYYY-MM-DD"
-            keyboardType="number-pad"
-            maxLength={10}
-            value={startDate}
-            onChangeText={(text) => setStartDate(formatDateInput(text))}
-            error={errors.start_date}
-            hint={
-              member.status === 'live' && member.membership
-                ? ({ text: `after current plan ends ${formatDate(member.membership.end_date)}`, tone: 'muted' } as const)
-                : undefined
-            }
-          />
-        ) : null}
+        <DateField
+          label="Start Date"
+          required
+          value={startDate}
+          onChange={setStartDate}
+          error={errors.start_date}
+          note={
+            mode === 'change' && member.membership
+              ? `Current plan (${member.membership.membership_plan.name}) ends the day before.`
+              : undefined
+          }
+        />
 
         <TextField
-          label={mode === 'change' ? 'Credit / Discount (₹)' : 'Discount (₹)'}
+          label="Discount (₹)"
           icon="money"
           placeholder="0"
           keyboardType="decimal-pad"
@@ -185,12 +160,6 @@ function NewPlanForm({ mode, member, plans }: { mode: 'renew' | 'change'; member
           error={errors.discount}
           hint={plan ? ({ text: `Payable ${formatMoney(payable)}`, tone: 'muted' } as const) : undefined}
         />
-        {mode === 'change' && credit > 0 ? (
-          <Text style={[styles.note, { color: theme.textSecondary }]}>
-            Includes {formatMoney(credit)} credit for the unused days of {member.membership?.membership_plan.name}. You
-            can change it.
-          </Text>
-        ) : null}
       </Card>
 
       <Card
@@ -260,7 +229,7 @@ function AdjustForm({ mode, member }: { mode: 'extend' | 'edit'; member: Member 
   async function save() {
     const next: Record<string, string> = {};
     if (mode === 'extend' && !(Number(days) >= 1 && Number(days) <= 365)) next.extend_days = 'Enter 1–365 days.';
-    if (mode === 'edit' && !isValidISODate(startDate)) next.start_date = 'Use the format YYYY-MM-DD.';
+    if (mode === 'edit' && !isValidISODate(startDate)) next.start_date = 'Choose a start date.';
     if (mode === 'edit' && Number(discount || 0) > Number(membership.amount)) {
       next.discount = "Discount can't exceed the plan amount.";
     }
@@ -323,17 +292,13 @@ function AdjustForm({ mode, member }: { mode: 'extend' | 'edit'; member: Member 
           </>
         ) : (
           <>
-            <TextField
+            <DateField
               label="Start Date"
               required
-              icon="calendar"
-              placeholder="YYYY-MM-DD"
-              keyboardType="number-pad"
-              maxLength={10}
               value={startDate}
-              onChangeText={(text) => setStartDate(formatDateInput(text))}
+              onChange={setStartDate}
               error={errors.start_date}
-              hint={{ text: 'end date follows the plan', tone: 'muted' }}
+              note="The end date follows the plan."
             />
             <TextField
               label="Discount (₹)"

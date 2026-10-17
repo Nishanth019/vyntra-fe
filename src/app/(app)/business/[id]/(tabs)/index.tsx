@@ -83,9 +83,9 @@ export default function DashboardScreen() {
 
   const { members, collections } = stats;
   const overviewTiles: Tile[] = [
-    { label: 'Live Memberships', value: members.live, icon: 'people', tone: 'success', href: membersHref('live') },
+    { label: 'Active Members', value: members.live, icon: 'people', tone: 'success', href: membersHref('live') },
     { label: 'Total Members', value: members.all, icon: 'people', tone: 'primary', href: membersHref('all') },
-    { label: 'Expired Memberships', value: members.expired, icon: 'personOff', tone: 'danger', href: membersHref('expired') },
+    { label: 'Expired Members', value: members.expired, icon: 'personOff', tone: 'danger', href: membersHref('expired') },
     { label: 'Expiring (0–3 Days)', value: members.expiring3, icon: 'hourglass', tone: 'warning', href: membersHref('expiring3') },
     { label: 'Expiring (4–7 Days)', value: members.expiring7, icon: 'hourglass', tone: 'accent', href: membersHref('expiring7') },
     { label: 'Expiring (8–15 Days)', value: members.expiring15, icon: 'hourglass', tone: 'primary', href: membersHref('expiring15') },

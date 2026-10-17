@@ -1,18 +1,35 @@
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback } from 'react';
 
 import { LoadingState } from '@/components/ui/states';
 import { useResource } from '@/hooks/use-resource';
 import { useStackOptions } from '@/hooks/use-stack-options';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import { BusinessContext } from '@/lib/business';
+import { defaultBusiness } from '@/lib/default-business';
+import { useSession } from '@/lib/session';
 
 /** Loads the business account once and shares it with every screen inside it. */
 export default function BusinessLayout() {
   const stackOptions = useStackOptions();
   const id = Number(useLocalSearchParams<{ id: string }>().id);
 
-  const fetchAccount = useCallback(() => api.businessAccount(id), [id]);
+  const { admin } = useSession();
+
+  // The business opened last becomes the default; one the admin lost access to is forgotten.
+  const fetchAccount = useCallback(async () => {
+    try {
+      const account = await api.businessAccount(id);
+      if (admin) defaultBusiness.set(admin.id, account.id);
+      return account;
+    } catch (e) {
+      if (e instanceof ApiError && (e.status === 403 || e.status === 404) && admin) {
+        await defaultBusiness.clear(admin.id);
+        router.replace({ pathname: '/', params: { switch: '1' } });
+      }
+      throw e;
+    }
+  }, [id, admin]);
   const { data: account, setData: setAccount, error, retry } = useResource(fetchAccount);
 
   if (!account) return <LoadingState error={error} onRetry={retry} />;

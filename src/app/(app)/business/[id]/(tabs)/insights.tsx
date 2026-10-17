@@ -11,13 +11,13 @@ import { ErrorBanner } from '@/components/ui/error-banner';
 import { Icon } from '@/components/ui/icon';
 import { Screen } from '@/components/ui/screen';
 import { LoadingState } from '@/components/ui/states';
-import { TextField } from '@/components/ui/text-field';
+import { DateField } from '@/components/ui/date-field';
 import { Radius, Spacing } from '@/constants/theme';
 import { useResource } from '@/hooks/use-resource';
 import { useTheme } from '@/hooks/use-theme';
 import { api, type Insights } from '@/lib/api';
 import { useBusiness } from '@/lib/business';
-import { formatDateInput, isValidISODate, parseISODate } from '@/lib/dates';
+import { isValidISODate, parseISODate } from '@/lib/dates';
 import { formatMoney } from '@/lib/format';
 import { getPeriods, type PeriodKey } from '@/lib/periods';
 
@@ -55,7 +55,7 @@ export default function InsightsScreen() {
 
   function applyCustom() {
     const { from, to } = customInput;
-    if (!isValidISODate(from) || !isValidISODate(to)) return setCustomError('Use the format YYYY-MM-DD.');
+    if (!isValidISODate(from) || !isValidISODate(to)) return setCustomError('Choose both dates.');
     if (to < from) return setCustomError("End date can't be before the start date.");
     setCustomError('');
     setCustom({ from, to });
@@ -74,13 +74,11 @@ export default function InsightsScreen() {
           <View style={styles.customRow}>
             {(['from', 'to'] as const).map((field) => (
               <View key={field} style={styles.flex}>
-                <TextField
+                <DateField
                   label={field === 'from' ? 'From' : 'To'}
-                  placeholder="YYYY-MM-DD"
-                  keyboardType="number-pad"
-                  maxLength={10}
                   value={customInput[field]}
-                  onChangeText={(text) => setCustomInput((current) => ({ ...current, [field]: formatDateInput(text) }))}
+                  onChange={(value) => setCustomInput((current) => ({ ...current, [field]: value }))}
+                  maximumDate={new Date()}
                 />
               </View>
             ))}
@@ -156,7 +154,7 @@ function Report({
           />
         </View>
         <View style={styles.row}>
-          <Kpi label="Live Members" value={data.live_members} hint="right now" />
+          <Kpi label="Active Members" value={data.live_members} hint="right now" />
           <Kpi label="Outstanding Dues" value={formatMoney(data.outstanding_dues)} hint="right now" />
         </View>
       </View>

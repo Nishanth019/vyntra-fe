@@ -283,6 +283,7 @@ export type MemberQuery = {
   business_account_id: number;
   search?: string;
   member_code?: string;
+  phone?: string;
   is_active?: boolean;
   status?: 'live' | 'expired';
   end_date_from?: string;

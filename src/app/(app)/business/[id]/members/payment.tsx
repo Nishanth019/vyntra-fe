@@ -6,6 +6,7 @@ import { MemberPicker } from '@/components/member-picker';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Chip } from '@/components/ui/chip';
+import { DateField } from '@/components/ui/date-field';
 import { ErrorBanner } from '@/components/ui/error-banner';
 import { Screen } from '@/components/ui/screen';
 import { SelectField } from '@/components/ui/select-field';
@@ -14,7 +15,7 @@ import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { api, ApiError, type Member } from '@/lib/api';
 import { useBusiness } from '@/lib/business';
-import { formatDateInput, isValidISODate, toISODate } from '@/lib/dates';
+import { isValidISODate, toISODate } from '@/lib/dates';
 import { formatMoney, memberName } from '@/lib/format';
 
 const PAYMENT_METHODS = [
@@ -59,7 +60,7 @@ export default function RecordPaymentScreen() {
     const nextErrors: typeof errors = {};
     if (!member) nextErrors.member = 'Select a member.';
     if (!(Number(amount) > 0)) nextErrors.amount = 'Enter the amount received.';
-    if (!isValidISODate(date)) nextErrors.date = 'Use the format YYYY-MM-DD.';
+    if (!isValidISODate(date)) nextErrors.date = 'Choose the payment date.';
     else if (date > today) nextErrors.date = "Payment date can't be in the future.";
     setErrors(nextErrors);
     setFormError('');
@@ -140,18 +141,15 @@ export default function RecordPaymentScreen() {
           ))}
         </View>
 
-        <TextField
+        <DateField
           label="Payment Date"
-          icon="calendar"
-          placeholder="YYYY-MM-DD"
-          keyboardType="number-pad"
-          maxLength={10}
           value={date}
-          onChangeText={(text) => {
-            setDate(formatDateInput(text));
+          onChange={(value) => {
+            setDate(value);
             setErrors((current) => ({ ...current, date: undefined }));
           }}
           error={errors.date}
+          maximumDate={new Date()}
         />
         <TextField
           label="Transaction Reference"

@@ -1,20 +1,23 @@
 import { router } from 'expo-router';
 import { useEffect, useState, type ReactNode } from 'react';
-import { StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { PlanOption } from '@/components/plan-option';
+import { membershipStatus, StatusPill } from '@/components/status-pill';
 import { Chip } from '@/components/ui/chip';
+import { DateField } from '@/components/ui/date-field';
 import { ErrorBanner } from '@/components/ui/error-banner';
 import { Screen } from '@/components/ui/screen';
+import { Icon } from '@/components/ui/icon';
 import { TextField } from '@/components/ui/text-field';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { api, ApiError, type Member, type MemberInput, type MembershipPlan } from '@/lib/api';
 import { useBusiness } from '@/lib/business';
 import { confirm } from '@/lib/confirm';
-import { formatDateInput, isValidISODate, toISODate } from '@/lib/dates';
+import { isValidISODate, toISODate } from '@/lib/dates';
 import { formatMoney, memberName } from '@/lib/format';
 import { PAYMENT_METHODS } from '@/lib/payments';
 
@@ -72,6 +75,12 @@ export function MemberForm({
   const [payment, setPayment] = useState({ amount: '', method: 'CASH', reference: '', notes: '' });
 
   const [codeCheck, setCodeCheck] = useState<{ code: string; taken: boolean } | null>(null);
+  // New members: someone already registered with this mobile number (to renew instead).
+  const [phoneCheck, setPhoneCheck] = useState<{ phone: string; member: Member | null } | null>(null);
+  // Emergency contact is optional, so it starts collapsed unless it has details.
+  const [showEmergency, setShowEmergency] = useState(
+    Boolean(member?.gym_details?.emergency_contact_name || member?.gym_details?.emergency_contact_phone),
+  );
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -94,6 +103,20 @@ export function MemberForm({
     return () => clearTimeout(timer);
   }, [code, account.id, member?.id, member?.member_code]);
 
+  // Adding someone whose number is already registered? Offer to renew / open them instead.
+  const phone = values.phone.trim();
+  useEffect(() => {
+    if (member || !PHONE_PATTERN.test(phone)) return;
+    const timer = setTimeout(() => {
+      api.members({ business_account_id: account.id, phone }).then(
+        ({ results }) => setPhoneCheck({ phone, member: results[0] ?? null }),
+        () => {},
+      );
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [phone, member, account.id]);
+  const existing = phoneCheck?.phone === phone ? phoneCheck.member : null;
+
   const codeTaken = codeCheck?.code === code && codeCheck.taken;
   const codeHint =
     codeCheck?.code === code && code !== member?.member_code
@@ -114,10 +137,10 @@ export function MemberForm({
     if (!values.first_name.trim()) next.first_name = 'Enter the first name.';
     if (values.phone && !PHONE_PATTERN.test(values.phone)) next.phone = 'Enter a valid mobile number.';
     if (values.email && !EMAIL_PATTERN.test(values.email.trim())) next.email = 'Enter a valid email address.';
-    if (values.date_of_birth && !isValidISODate(values.date_of_birth)) next.date_of_birth = 'Use the format YYYY-MM-DD.';
+    if (values.date_of_birth && !isValidISODate(values.date_of_birth)) next.date_of_birth = 'Choose a valid date.';
     if (!member) {
       if (!plan) next.membership_plan_id = 'Choose a plan.';
-      if (!isValidISODate(values.start_date)) next.start_date = 'Use the format YYYY-MM-DD.';
+      if (!isValidISODate(values.start_date)) next.start_date = 'Choose a start date.';
       if (discount.trim() && plan) {
         const value = Number(discount);
         if (!(value >= 0)) next.discount = 'Enter a valid discount.';
@@ -267,6 +290,7 @@ export function MemberForm({
           {...field('phone')}
           onChangeText={(text) => update('phone', text.replace(/[^\d+]/g, ''))}
         />
+        {existing ? <ExistingMember member={existing} /> : null}
         <TextField
           label="Email"
           icon="mail"
@@ -275,39 +299,55 @@ export function MemberForm({
           keyboardType="email-address"
           {...field('email')}
         />
-        <TextField
+        <DateField
           label="Date of Birth"
-          icon="calendar"
-          placeholder="YYYY-MM-DD"
-          keyboardType="number-pad"
-          maxLength={10}
-          {...field('date_of_birth')}
-          onChangeText={(text) => update('date_of_birth', formatDateInput(text))}
+          placeholder="Optional"
+          value={values.date_of_birth}
+          onChange={(value) => update('date_of_birth', value)}
+          error={errors.date_of_birth}
+          maximumDate={new Date()}
+          clearable
         />
       </Card>
 
-      <Card icon="phone" title="Emergency Contact" subtitle="Optional — who to reach in an emergency.">
-        <TextField
-          label="Contact Name"
-          placeholder="e.g. parent / spouse"
-          autoCapitalize="words"
-          {...field('emergency_contact_name')}
-        />
-        <TextField
-          label="Contact Mobile"
-          icon="phone"
-          placeholder="Mobile number"
-          keyboardType="phone-pad"
-          maxLength={16}
-          {...field('emergency_contact_phone')}
-          onChangeText={(text) => update('emergency_contact_phone', text.replace(/[^\d+]/g, ''))}
-        />
-        <TextField
-          label="Address"
-          icon="location"
-          placeholder="Home address"
-          {...field('emergency_contact_address')}
-        />
+      <Card
+        icon="phone"
+        title="Emergency Contact"
+        subtitle="Optional"
+        action={
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={showEmergency ? 'Hide emergency contact' : 'Add emergency contact'}
+            hitSlop={10}
+            onPress={() => setShowEmergency(!showEmergency)}>
+            <Icon name={showEmergency ? 'chevronUp' : 'chevronDown'} color={theme.textSecondary} size={24} />
+          </Pressable>
+        }>
+        {showEmergency ? (
+          <>
+            <TextField
+              label="Contact Name"
+              placeholder="e.g. parent / spouse"
+              autoCapitalize="words"
+              {...field('emergency_contact_name')}
+            />
+            <TextField
+              label="Contact Mobile"
+              icon="phone"
+              placeholder="Mobile number"
+              keyboardType="phone-pad"
+              maxLength={16}
+              {...field('emergency_contact_phone')}
+              onChangeText={(text) => update('emergency_contact_phone', text.replace(/[^\d+]/g, ''))}
+            />
+            <TextField
+              label="Address"
+              icon="location"
+              placeholder="Home address"
+              {...field('emergency_contact_address')}
+            />
+          </>
+        ) : null}
       </Card>
 
       {member ? null : (
@@ -334,15 +374,12 @@ export function MemberForm({
 
           {plan ? (
             <>
-              <TextField
+              <DateField
                 label="Start Date"
                 required
-                icon="calendar"
-                placeholder="YYYY-MM-DD"
-                keyboardType="number-pad"
-                maxLength={10}
-                {...field('start_date')}
-                onChangeText={(text) => update('start_date', formatDateInput(text))}
+                value={values.start_date}
+                onChange={(value) => update('start_date', value)}
+                error={errors.start_date}
               />
               <TextField
                 label="Discount (₹)"
@@ -427,7 +464,7 @@ export function MemberForm({
 
       {member && onToggleActive ? (
         member.is_active ? (
-          <Card icon="warning" title="Danger Zone" subtitle="Deactivating ends the current membership." tone="danger">
+          <Card icon="warning" title="Danger Zone" subtitle="Moves the member to Inactive. You can reactivate them anytime." tone="danger">
             <Button title="Deactivate Member" icon="personOff" variant="danger" loading={toggling} onPress={toggleActive} />
           </Card>
         ) : (
@@ -438,7 +475,55 @@ export function MemberForm({
   );
 }
 
+/** Shown when the mobile number being added already belongs to a member of this business. */
+function ExistingMember({ member }: { member: Member }) {
+  const theme = useTheme();
+  const { account } = useBusiness();
+  const status = membershipStatus(member);
+  const canRenew = member.status !== 'live' && member.status !== 'upcoming';
+  const params = { id: account.id, memberId: member.id };
+
+  return (
+    <View style={[styles.existing, { backgroundColor: theme.warningSoft, borderColor: theme.warning }]}>
+      <View style={styles.existingHeader}>
+        <Text style={[styles.existingText, { color: theme.text }]}>
+          Already registered: {memberName(member)} (#{member.member_code})
+        </Text>
+        <StatusPill {...status} />
+      </View>
+      <Button
+        title={canRenew ? `Renew ${member.first_name}` : `Open ${member.first_name}`}
+        icon={canRenew ? 'renew' : 'person'}
+        variant="secondary"
+        onPress={() =>
+          router.replace(
+            canRenew
+              ? { pathname: '/business/[id]/members/plan', params: { ...params, mode: 'renew' } }
+              : { pathname: '/business/[id]/members/[memberId]', params },
+          )
+        }
+      />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  existing: {
+    gap: Spacing.two + 2,
+    padding: Spacing.three,
+    borderWidth: 1,
+    borderRadius: Radius.md,
+  },
+  existingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  existingText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+  },
   row: {
     flexDirection: 'row',
     gap: Spacing.two + 2,
