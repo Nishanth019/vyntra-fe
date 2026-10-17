@@ -10,6 +10,7 @@ import { TextField } from '@/components/ui/text-field';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { ApiError, type Staff, type StaffInput } from '@/lib/api';
+import { isValidMobile, MOBILE_ERROR } from '@/lib/mobile';
 
 // Quick picks; any other role can be typed in.
 const ROLES = ['Trainer', 'Front Desk', 'Manager', 'Housekeeping'];
@@ -18,7 +19,6 @@ const FIELDS = ['employee_code', 'first_name', 'last_name', 'phone', 'email', 'r
 type Field = (typeof FIELDS)[number];
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_PATTERN = /^\+?\d{7,15}$/;
 
 type StaffFormProps = {
   /** The staff member being edited; omit to add a new one. */
@@ -49,7 +49,7 @@ export function StaffForm({ staff, onSubmit }: StaffFormProps) {
     const nextErrors: Partial<Record<Field, string>> = {};
     if (!trimmed.employee_code) nextErrors.employee_code = 'Enter an employee ID.';
     if (!trimmed.first_name) nextErrors.first_name = 'Enter the first name.';
-    if (trimmed.phone && !PHONE_PATTERN.test(trimmed.phone)) nextErrors.phone = 'Enter a valid mobile number.';
+    if (trimmed.phone && !isValidMobile(trimmed.phone)) nextErrors.phone = MOBILE_ERROR;
     if (trimmed.email && !EMAIL_PATTERN.test(trimmed.email)) nextErrors.email = 'Enter a valid email address.';
     setErrors(nextErrors);
     setFormError('');

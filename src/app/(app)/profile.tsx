@@ -17,9 +17,9 @@ import { confirm } from '@/lib/confirm';
 import { initials } from '@/lib/format';
 import { ACCOUNT_DELETION_URL, PRIVACY_POLICY_URL } from '@/lib/links';
 import { useSession } from '@/lib/session';
+import { isValidMobile, MOBILE_ERROR } from '@/lib/mobile';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const MOBILE_PATTERN = /^\d{10,15}$/;
 
 export default function ProfileScreen() {
   const { admin, signOut } = useSession();
@@ -151,7 +151,7 @@ function PersonalInformation({ admin }: { admin: Admin }) {
     };
     const nextErrors: Record<string, string> = {};
     if (!input.full_name) nextErrors.full_name = 'Enter your name.';
-    if (!MOBILE_PATTERN.test(input.mobile_no)) nextErrors.mobile_no = 'Enter a valid mobile number (10–15 digits).';
+    if (!isValidMobile(input.mobile_no)) nextErrors.mobile_no = MOBILE_ERROR;
     if (!EMAIL_PATTERN.test(input.email)) nextErrors.email = 'Enter a valid email address.';
     setErrors(nextErrors);
     setFormError('');

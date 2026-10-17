@@ -9,9 +9,9 @@ import { TextField } from '@/components/ui/text-field';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { ApiError, type AccountAdmin, type AccountAdminInput, type SignupInput } from '@/lib/api';
+import { isValidMobile, MOBILE_ERROR } from '@/lib/mobile';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const MOBILE_PATTERN = /^\d{10,15}$/;
 
 type AdminFormProps =
   | { accountAdmin?: undefined; onSubmit: (input: SignupInput) => Promise<void> }
@@ -52,7 +52,7 @@ export function AdminForm(props: AdminFormProps) {
     };
     const nextErrors: Record<string, string> = {};
     if (!input.full_name) nextErrors.full_name = 'Enter their full name.';
-    if (!MOBILE_PATTERN.test(input.mobile_no)) nextErrors.mobile_no = 'Enter a valid mobile number (10–15 digits).';
+    if (!isValidMobile(input.mobile_no)) nextErrors.mobile_no = MOBILE_ERROR;
     if (!EMAIL_PATTERN.test(input.email)) nextErrors.email = 'Enter a valid email address.';
     if (!editing && values.password.length < 8) nextErrors.password = 'Use at least 8 characters.';
     setErrors(nextErrors);

@@ -7,16 +7,16 @@ import { ErrorBanner } from '@/components/ui/error-banner';
 import { TextField } from '@/components/ui/text-field';
 import { api, ApiError, type SignupInput } from '@/lib/api';
 import { useSession } from '@/lib/session';
+import { isValidMobile, MOBILE_ERROR } from '@/lib/mobile';
 
 type Fields = keyof SignupInput;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const MOBILE_PATTERN = /^\d{10,15}$/;
 
 function validate(values: SignupInput) {
   const errors: Partial<Record<Fields, string>> = {};
   if (!values.full_name) errors.full_name = 'Enter your full name.';
-  if (!MOBILE_PATTERN.test(values.mobile_no)) errors.mobile_no = 'Enter a valid mobile number (10–15 digits).';
+  if (!isValidMobile(values.mobile_no)) errors.mobile_no = MOBILE_ERROR;
   if (!EMAIL_PATTERN.test(values.email)) errors.email = 'Enter a valid email address.';
   if (values.password.length < 8) errors.password = 'Use at least 8 characters.';
   return errors;

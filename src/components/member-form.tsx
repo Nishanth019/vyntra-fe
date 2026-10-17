@@ -20,6 +20,7 @@ import { useBusiness } from '@/lib/business';
 import { isValidISODate, toISODate } from '@/lib/dates';
 import { formatMoney, memberName } from '@/lib/format';
 import { paymentAmountError } from '@/lib/payments';
+import { isValidMobile, MOBILE_ERROR, normalizeMobile } from '@/lib/mobile';
 
 const GENDERS: { value: string; icon: IconName }[] = [
   { value: 'Male', icon: 'male' },
@@ -28,7 +29,6 @@ const GENDERS: { value: string; icon: IconName }[] = [
 ];
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_PATTERN = /^\+?\d{7,15}$/;
 
 type MemberFormProps = {
   /** The member being edited; omit to add a new one. Plans are managed separately when editing. */
@@ -102,7 +102,7 @@ export function MemberForm({
   }, [code, account.id, member?.id, member?.member_code]);
 
   // Adding someone whose mobile or email is already registered? Offer to renew / open them instead.
-  const phone = PHONE_PATTERN.test(values.phone.trim()) ? values.phone.trim() : '';
+  const phone = isValidMobile(values.phone) ? normalizeMobile(values.phone) : '';
   const email = EMAIL_PATTERN.test(values.email.trim()) ? values.email.trim().toLowerCase() : '';
   const duplicateKey = `${phone}|${email}`;
   useEffect(() => {
@@ -142,7 +142,10 @@ export function MemberForm({
     if (!code) next.member_code = 'Enter a member ID.';
     else if (codeTaken) next.member_code = 'This member ID is already in use.';
     if (!values.first_name.trim()) next.first_name = 'Enter the first name.';
-    if (values.phone && !PHONE_PATTERN.test(values.phone)) next.phone = 'Enter a valid mobile number.';
+    if (values.phone && !isValidMobile(values.phone)) next.phone = MOBILE_ERROR;
+    if (values.emergency_contact_phone && !isValidMobile(values.emergency_contact_phone)) {
+      next.emergency_contact_phone = MOBILE_ERROR;
+    }
     if (values.email && !EMAIL_PATTERN.test(values.email.trim())) next.email = 'Enter a valid email address.';
     if (values.date_of_birth && !isValidISODate(values.date_of_birth)) next.date_of_birth = 'Choose a valid date.';
     if (!member) {

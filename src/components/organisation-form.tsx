@@ -11,6 +11,7 @@ import { TextField } from '@/components/ui/text-field';
 import { Radius, shadow, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { ApiError, type BusinessAccount, type BusinessAccountInput } from '@/lib/api';
+import { isValidMobile, MOBILE_ERROR } from '@/lib/mobile';
 
 const FIELDS = [
   'name',
@@ -67,6 +68,7 @@ export function OrganisationForm({ account, submitLabel, onSubmit, footer }: Org
 
     const nextErrors: Partial<Record<Field, string>> = {};
     if (!trimmed.name) nextErrors.name = 'Enter your organisation name.';
+    if (trimmed.contact_no && !isValidMobile(trimmed.contact_no)) nextErrors.contact_no = MOBILE_ERROR;
     if (trimmed.email && !EMAIL_PATTERN.test(trimmed.email)) nextErrors.email = 'Enter a valid email address.';
     if (trimmed.website && !URL_PATTERN.test(trimmed.website)) {
       nextErrors.website = 'Enter a full link, e.g. https://example.com';
