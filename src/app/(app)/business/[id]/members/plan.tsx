@@ -17,14 +17,15 @@ import { useResource } from '@/hooks/use-resource';
 import { useTheme } from '@/hooks/use-theme';
 import { api, ApiError, type Member, type MembershipPlan } from '@/lib/api';
 import { useBusiness } from '@/lib/business';
-import { addDays, formatDate, isValidISODate, parseISODate, toISODate } from '@/lib/dates';
+import { confirm } from '@/lib/confirm';
+import { addDays, daysUntil, formatDate, isValidISODate, parseISODate, toISODate } from '@/lib/dates';
 import { formatMoney, memberName } from '@/lib/format';
 import { PAYMENT_METHODS } from '@/lib/payments';
 
 const TITLES: Record<PlanMode, string> = {
   renew: 'Renew Membership',
   change: 'Change Plan',
-  early: 'Renew Early',
+  early: 'Add Future Plan',
   extend: 'Extend / Freeze',
   edit: 'Edit Membership',
 };
@@ -72,8 +73,13 @@ function NewPlanForm({ mode, member, plans }: { mode: NewPlanMode; member: Membe
   const { account } = useBusiness();
 
   const currentPlanId = member.membership?.membership_plan.id ?? null;
-  // Renew Early: the next plan starts after the current one ends (any later date is fine).
+  // A future plan starts after the current one ends (any later date is fine).
   const earliestNext = member.membership ? addDays(parseISODate(member.membership.end_date), 1) : new Date();
+  // Change Plan replaces the current plan from a date between its start and today.
+  const todayISO = toISODate(new Date());
+  const currentStart = member.membership?.start_date ?? todayISO;
+  const changeFrom = currentStart < todayISO ? currentStart : todayISO;
+  const changeTo = currentStart > todayISO ? currentStart : todayISO;
   const [planId, setPlanId] = useState<number | null>(mode === 'change' ? null : currentPlanId);
   const [startDate, setStartDate] = useState(toISODate(mode === 'early' ? earliestNext : new Date()));
   const [discount, setDiscount] = useState('');
@@ -93,12 +99,24 @@ function NewPlanForm({ mode, member, plans }: { mode: NewPlanMode; member: Membe
     if (!isValidISODate(startDate)) next.start_date = 'Choose a start date.';
     else if (mode === 'early' && startDate < toISODate(earliestNext)) {
       next.start_date = `Must be on or after ${formatDate(toISODate(earliestNext))}.`;
+    } else if (mode === 'change' && (startDate < changeFrom || startDate > changeTo)) {
+      next.start_date = `Pick a date from ${formatDate(changeFrom)} to ${formatDate(changeTo)}.`;
     }
     if (discount && plan && Number(discount) > Number(plan.amount)) next.discount = "Discount can't exceed the plan amount.";
     const amount = Number(payment.amount || payable);
     if (recordPayment && !(amount > 0)) next.payment_amount = 'Enter the amount received.';
     setErrors(next);
     if (Object.keys(next).length > 0 || !plan) return;
+
+    if (mode === 'change' && member.membership) {
+      const ok = await confirm(
+        'Replace the current plan?',
+        `${member.membership.membership_plan.name} will be closed, and its payments and dues will no longer count. ` +
+          `${plan.name} from ${formatDate(startDate)} becomes the current plan.`,
+        'Replace Plan',
+      );
+      if (!ok) return;
+    }
 
     setSaving(true);
     setFormError('');
@@ -141,7 +159,7 @@ function NewPlanForm({ mode, member, plans }: { mode: NewPlanMode; member: Membe
             ? 'Rejoining: pick their new plan. Earlier plans stay in their history.'
             : mode === 'early'
               ? 'Add their next plan (same or different). It starts after the current plan ends; until then only the current plan counts for dues.'
-              : 'A completely new plan from the start date. The current plan ends the day before, and only the new plan counts for dues.'
+              : 'Replaces the current plan with a new one. The current plan is closed, and its payments and dues no longer count.'
         }>
         <View style={styles.plans}>
           {plans.map((item) => (
@@ -156,10 +174,11 @@ function NewPlanForm({ mode, member, plans }: { mode: NewPlanMode; member: Membe
           value={startDate}
           onChange={setStartDate}
           error={errors.start_date}
-          minimumDate={mode === 'early' ? earliestNext : undefined}
+          minimumDate={mode === 'early' ? earliestNext : mode === 'change' ? parseISODate(changeFrom) : undefined}
+          maximumDate={mode === 'change' ? parseISODate(changeTo) : undefined}
           note={
             mode === 'change' && member.membership
-              ? `Current plan (${member.membership.membership_plan.name}) ends the day before.`
+              ? `From ${formatDate(changeFrom)} to ${formatDate(changeTo)}. To add a plan after the current one, use Add Future Plan.`
               : mode === 'early' && member.membership
                 ? `Current plan ends ${formatDate(member.membership.end_date)}. Pick that next day or later.`
                 : undefined
@@ -234,7 +253,9 @@ function AdjustForm({ mode, member, next }: { mode: 'extend' | 'edit'; member: M
   const { account } = useBusiness();
   const membership = (next ? member.next_membership : member.membership)!;
 
-  const [days, setDays] = useState('');
+  // Extend: the new end date (presets add days to the current one).
+  const [newEnd, setNewEnd] = useState('');
+  const days = newEnd ? daysUntil(newEnd) - daysUntil(membership.end_date) : 0;
   const [reason, setReason] = useState('');
   const [startDate, setStartDate] = useState(membership.start_date);
   const [discount, setDiscount] = useState(String(Number(membership.discount)));
@@ -244,7 +265,7 @@ function AdjustForm({ mode, member, next }: { mode: 'extend' | 'edit'; member: M
 
   async function save() {
     const next: Record<string, string> = {};
-    if (mode === 'extend' && !(Number(days) >= 1 && Number(days) <= 365)) next.extend_days = 'Enter 1–365 days.';
+    if (mode === 'extend' && !(days >= 1 && days <= 365)) next.extend_days = 'Pick a new end date (up to a year later).';
     if (mode === 'edit' && !isValidISODate(startDate)) next.start_date = 'Choose a start date.';
     if (mode === 'edit' && Number(discount || 0) > Number(membership.amount)) {
       next.discount = "Discount can't exceed the plan amount.";
@@ -259,7 +280,7 @@ function AdjustForm({ mode, member, next }: { mode: 'extend' | 'edit'; member: M
         account.id,
         membership.id,
         mode === 'extend'
-          ? { extend_days: Number(days), reason: reason.trim() }
+          ? { extend_days: days, reason: reason.trim() }
           : { start_date: startDate, discount: Number(discount || 0).toFixed(2) },
       );
       router.back();
@@ -272,7 +293,7 @@ function AdjustForm({ mode, member, next }: { mode: 'extend' | 'edit'; member: M
     }
   }
 
-  const newEnd = Number(days) > 0 ? toISODate(addDays(parseISODate(membership.end_date), Number(days))) : null;
+  const endPlus = (n: number) => toISODate(addDays(parseISODate(membership.end_date), n));
 
   return (
     <Screen>
@@ -284,25 +305,23 @@ function AdjustForm({ mode, member, next }: { mode: 'extend' | 'edit'; member: M
         {mode === 'extend' ? (
           <>
             <Text style={[styles.note, { color: theme.textSecondary }]}>
-              Adds days to the end date, e.g. when a member travels or is unwell.
+              Moves the end date later, e.g. when a member travels or is unwell.
             </Text>
             <View style={styles.row}>
               {EXTEND_PRESETS.map((preset) => (
                 <View key={preset} style={styles.flex}>
-                  <Chip label={`${preset} days`} selected={days === String(preset)} onPress={() => setDays(String(preset))} />
+                  <Chip label={`+${preset} days`} selected={days === preset} onPress={() => setNewEnd(endPlus(preset))} />
                 </View>
               ))}
             </View>
-            <TextField
-              label="Days"
+            <DateField
+              label="New End Date"
               required
-              icon="calendar"
-              keyboardType="number-pad"
-              maxLength={3}
-              value={days}
-              onChangeText={(text) => setDays(text.replace(/\D/g, ''))}
+              value={newEnd}
+              onChange={setNewEnd}
+              minimumDate={parseISODate(endPlus(1))}
               error={errors.extend_days}
-              hint={newEnd ? ({ text: `new end ${formatDate(newEnd)}`, tone: 'muted' } as const) : undefined}
+              note={days > 0 ? `Adds ${days} day${days === 1 ? '' : 's'} (ends ${formatDate(newEnd)}).` : undefined}
             />
             <TextField label="Reason" placeholder="e.g. Travel, medical (optional)" value={reason} onChangeText={setReason} />
           </>
@@ -314,7 +333,14 @@ function AdjustForm({ mode, member, next }: { mode: 'extend' | 'edit'; member: M
               value={startDate}
               onChange={setStartDate}
               error={errors.start_date}
-              note="The end date follows the plan."
+              minimumDate={
+                next && member.membership ? addDays(parseISODate(member.membership.end_date), 1) : undefined
+              }
+              note={
+                next && member.membership
+                  ? `After the current plan ends (${formatDate(member.membership.end_date)}). The end date follows the plan.`
+                  : 'The end date follows the plan.'
+              }
             />
             <TextField
               label="Discount (₹)"

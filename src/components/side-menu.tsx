@@ -1,9 +1,9 @@
 import Constants from 'expo-constants';
 import { router, type Href } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import type { ReactNode } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { SlideInLeft } from 'react-native-reanimated';
+import { useEffect, type ReactNode } from 'react';
+import { BackHandler, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeIn, SlideInLeft } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon, type IconName } from '@/components/ui/icon';
@@ -27,6 +27,16 @@ export function SideMenu({ visible, onClose }: SideMenuProps) {
   const { account } = useBusiness();
   const params = { id: account.id };
 
+  // Android back closes the menu.
+  useEffect(() => {
+    if (!visible) return;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      onClose();
+      return true;
+    });
+    return () => subscription.remove();
+  }, [visible, onClose]);
+
   function go(href: Href) {
     onClose();
     router.push(href);
@@ -39,14 +49,10 @@ export function SideMenu({ visible, onClose }: SideMenuProps) {
   }
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      statusBarTranslucent
-      navigationBarTranslucent
-      onRequestClose={onClose}>
-      <View style={styles.overlay}>
+    // Drawn over the whole screen (tab bar and system bars included) rather than in a Modal,
+    // which on some Android phones stops short of the navigation bar.
+    visible ? (
+      <Animated.View entering={FadeIn.duration(150)} style={styles.overlay}>
         <Animated.View
           entering={SlideInLeft.duration(220)}
           style={[styles.panel, { backgroundColor: theme.background }]}>
@@ -193,8 +199,8 @@ export function SideMenu({ visible, onClose }: SideMenuProps) {
         </Animated.View>
 
         <Pressable accessibilityLabel="Close menu" style={styles.backdrop} onPress={onClose} />
-      </View>
-    </Modal>
+      </Animated.View>
+    ) : null
   );
 }
 
@@ -241,7 +247,13 @@ function MenuRow({ icon, title, subtitle, onPress, tone = 'primary' }: MenuRowPr
 
 const styles = StyleSheet.create({
   overlay: {
-    flex: 1,
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    zIndex: 100,
+    elevation: 100,
     flexDirection: 'row',
     backgroundColor: 'rgba(15, 23, 42, 0.45)',
   },

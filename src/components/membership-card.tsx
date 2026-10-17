@@ -16,17 +16,18 @@ import { AUTO_INACTIVE_NOTE } from '@/lib/member-filters';
 
 export type PlanMode = 'renew' | 'change' | 'early' | 'extend' | 'edit';
 
-// Renew Early (adding the next plan) opens this many days before the current plan ends.
-const RENEW_EARLY_DAYS = 7;
+// A future plan can be added this many days before the current plan ends.
+const FUTURE_PLAN_DAYS = 7;
 
 /**
- * The member's current plan with its dues and actions. Running plans can be changed or extended, and
- * renewed early in their last week; expired / inactive members (or ones without a plan) are renewed.
+ * The member's current plan with its dues and actions. Running plans can be changed (replaced) or
+ * extended, and get a future plan in their last week; expired / inactive members are renewed.
  */
 export function MembershipCard({ member, onChange }: { member: Member; onChange: (member: Member) => void }) {
   const theme = useTheme();
   const { account } = useBusiness();
   const [cancelling, setCancelling] = useState(false);
+  const [reactivating, setReactivating] = useState(false);
   const [error, setError] = useState('');
   const membership = member.membership;
   const next = member.next_membership;
@@ -38,13 +39,31 @@ export function MembershipCard({ member, onChange }: { member: Member; onChange:
 
   const running = member.status === 'live' || member.status === 'upcoming';
   const daysLeft = membership ? daysUntil(membership.end_date) : -1;
-  const canRenewEarly = member.status === 'live' && !next && daysLeft <= RENEW_EARLY_DAYS;
+  const canAddFuture = member.status === 'live' && !next && daysLeft <= FUTURE_PLAN_DAYS;
+  // Deactivated while the plan still runs: bring them back on the same plan.
+  const planStillRuns = Boolean(membership && daysUntil(membership.start_date) <= 0 && daysLeft >= 0);
+  const canReactivate = member.status === 'inactive' && planStillRuns;
+
+  async function reactivate() {
+    setReactivating(true);
+    setError('');
+    try {
+      onChange(await api.updateMember(account.id, member.id, { is_active: true }));
+    } catch (e) {
+      if (!(e instanceof ApiError)) throw e;
+      setError(e.message);
+    } finally {
+      setReactivating(false);
+    }
+  }
 
   async function cancelNext() {
     if (!next) return;
+    const paid = Number(next.amount_paid);
     const ok = await confirm(
-      'Cancel next plan?',
-      `${next.membership_plan.name} from ${formatDate(next.start_date)} will be removed.`,
+      'Cancel future plan?',
+      `${next.membership_plan.name} from ${formatDate(next.start_date)} will be removed.` +
+        (paid > 0 ? ` The ${formatMoney(paid)} paid for it will be deleted too (e.g. if you refunded it).` : ''),
       'Cancel Plan',
     );
     if (!ok) return;
@@ -61,14 +80,17 @@ export function MembershipCard({ member, onChange }: { member: Member; onChange:
   }
 
   return (
-    <Card icon="plans" title="Membership" action={<StatusPill {...membershipStatus(member)} />}>
+    <Card icon="plans" title="Membership">
+      <View style={styles.statusRow}>
+        <StatusPill {...membershipStatus(member)} />
+      </View>
       {membership ? <PlanBox membership={membership} /> : (
         <Text style={[styles.note, { color: theme.textSecondary }]}>No plan yet.</Text>
       )}
 
       {next ? (
         <View style={styles.next}>
-          <Text style={[styles.nextLabel, { color: theme.success }]}>NEXT PLAN</Text>
+          <Text style={[styles.nextLabel, { color: theme.success }]}>FUTURE PLAN</Text>
           <PlanBox membership={next} />
           <View style={styles.row}>
             <Button
@@ -95,28 +117,28 @@ export function MembershipCard({ member, onChange }: { member: Member; onChange:
         <Text style={[styles.note, { color: theme.textSecondary }]}>{AUTO_INACTIVE_NOTE}</Text>
       ) : null}
 
-      {canRenewEarly ? (
+      {canAddFuture ? (
         <>
           <Text style={[styles.note, { color: theme.textSecondary }]}>
-            {daysLeft === 0 ? 'Plan ends today.' : `Plan ends in ${daysLeft} day${daysLeft === 1 ? '' : 's'}.`} Add
-            their next plan now.
+            {daysLeft === 0 ? 'Plan ends today.' : `Plan ends in ${daysLeft} day${daysLeft === 1 ? '' : 's'}.`} You can
+            add their next plan now.
           </Text>
-          <Button title="Renew Early" icon="renew" onPress={() => open('early')} />
+          <Button title="Add Future Plan" icon="renew" onPress={() => open('early')} />
         </>
       ) : null}
       {running ? (
         <View style={styles.row}>
-          {next ? null : (
-            <Button
-              title="Change Plan"
-              icon="swap"
-              variant={canRenewEarly ? 'secondary' : 'primary'}
-              style={styles.flex}
-              onPress={() => open('change')}
-            />
-          )}
+          <Button
+            title="Change Plan"
+            icon="swap"
+            variant={canAddFuture ? 'secondary' : 'primary'}
+            style={styles.flex}
+            onPress={() => open('change')}
+          />
           <Button title="Extend" icon="pause" variant="secondary" style={styles.flex} onPress={() => open('extend')} />
         </View>
+      ) : canReactivate ? (
+        <Button title="Reactivate" icon="check" loading={reactivating} onPress={reactivate} />
       ) : (
         <Button
           title={member.status === 'inactive' ? 'Renew & Reactivate' : 'Renew'}
@@ -170,6 +192,10 @@ function Amount({ label, value, color }: { label: string; value: string; color: 
 }
 
 const styles = StyleSheet.create({
+  statusRow: {
+    flexDirection: 'row',
+    marginTop: -Spacing.two,
+  },
   next: {
     gap: Spacing.two,
   },

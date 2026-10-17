@@ -75,6 +75,7 @@ export default function InsightsScreen() {
             {(['from', 'to'] as const).map((field) => (
               <View key={field} style={styles.flex}>
                 <DateField
+                  compact
                   label={field === 'from' ? 'From' : 'To'}
                   value={customInput[field]}
                   onChange={(value) => setCustomInput((current) => ({ ...current, [field]: value }))}

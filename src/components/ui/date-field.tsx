@@ -22,7 +22,14 @@ export type DateFieldProps = {
   maximumDate?: Date;
   /** Shows a Clear action for optional dates. */
   clearable?: boolean;
+  /** Short date and no arrow, for narrow side-by-side fields. */
+  compact?: boolean;
 };
+
+/** e.g. "17 Oct 26". */
+function shortDate(value: string) {
+  return parseISODate(value).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
+}
 
 /** A date input that opens the phone's calendar. */
 export function DateField({
@@ -36,6 +43,7 @@ export function DateField({
   minimumDate,
   maximumDate,
   clearable = false,
+  compact = false,
 }: DateFieldProps) {
   const theme = useTheme();
   const [iosOpen, setIosOpen] = useState(false);
@@ -76,12 +84,20 @@ export function DateField({
         accessibilityRole="button"
         accessibilityLabel={`${label}: ${value ? formatDate(value) : 'not set'}`}
         onPress={open}
-        style={[styles.field, { backgroundColor: theme.surface, borderColor: error ? theme.danger : theme.border }]}>
-        <Icon name="calendar" size={20} color={theme.textSecondary} />
-        <Text style={[styles.value, { color: value ? theme.text : theme.textSecondary }]}>
-          {value ? formatDate(value) : placeholder}
+        style={[
+          styles.field,
+          compact && styles.compactField,
+          { backgroundColor: theme.surface, borderColor: error ? theme.danger : theme.border },
+        ]}>
+        <Icon name="calendar" size={compact ? 18 : 20} color={theme.textSecondary} />
+        <Text
+          style={[styles.value, { color: value ? theme.text : theme.textSecondary }]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.8}>
+          {value ? (compact ? shortDate(value) : formatDate(value)) : placeholder}
         </Text>
-        <Icon name="chevronDown" size={18} color={theme.textSecondary} />
+        {compact ? null : <Icon name="chevronDown" size={18} color={theme.textSecondary} />}
       </Pressable>
       {error ? <Text style={[styles.message, { color: theme.danger }]}>{error}</Text> : null}
       {!error && note ? <Text style={[styles.message, { color: theme.textSecondary }]}>{note}</Text> : null}
@@ -136,6 +152,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     borderWidth: 1.5,
     borderRadius: Radius.md,
+  },
+  compactField: {
+    gap: Spacing.two,
+    paddingHorizontal: Spacing.two + 2,
   },
   value: {
     flex: 1,

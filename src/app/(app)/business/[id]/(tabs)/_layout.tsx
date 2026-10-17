@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import { SideMenu } from '@/components/side-menu';
 import { TabBar } from '@/components/tab-bar';
@@ -19,6 +19,7 @@ export default function BusinessTabsLayout() {
   const theme = useTheme();
   const { account } = useBusiness();
   const [menuOpen, setMenuOpen] = useState(false);
+  const closeMenu = useCallback(() => setMenuOpen(false), []);
 
   return (
     <>
@@ -42,7 +43,7 @@ export default function BusinessTabsLayout() {
           />
         ))}
       </Tabs>
-      <SideMenu visible={menuOpen} onClose={() => setMenuOpen(false)} />
+      <SideMenu visible={menuOpen} onClose={closeMenu} />
     </>
   );
 }

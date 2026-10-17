@@ -129,7 +129,7 @@ export function PlanForm({ plan, onSubmit }: PlanFormProps) {
         <TextField
           label={`Duration (${selectedType?.name ?? 'units'})`}
           required
-          icon="calendar"
+          icon="hourglass"
           keyboardType="number-pad"
           maxLength={4}
           value={durationValue}
