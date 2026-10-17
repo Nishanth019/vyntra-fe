@@ -130,9 +130,13 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
+    // Lets the input shrink inside its box instead of pushing past the rounded border.
+    minWidth: 0,
     height: '100%',
     paddingHorizontal: Spacing.three,
     fontSize: 16,
+    // No browser focus ring on web; the field's border turns blue when focused instead.
+    outlineWidth: 0,
   },
   inputWithIcon: {
     paddingLeft: Spacing.two + 2,
