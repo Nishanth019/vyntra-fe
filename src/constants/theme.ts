@@ -8,31 +8,35 @@ import { Platform } from 'react-native';
 
 export const Colors = {
   light: {
-    text: '#0F172A',
-    textSecondary: '#64748B',
-    background: '#F6F7FB',
+    text: '#101828',
+    textSecondary: '#667085',
+    background: '#F4F6FB',
     surface: '#FFFFFF',
-    border: '#E2E8F0',
+    border: '#E6EAF1',
     primary: '#2563EB',
-    primarySoft: '#EAF1FF',
+    /** Where the primary gradient (buttons, hero) ends. */
+    primaryEnd: '#5B5BF0',
+    primarySoft: '#EBF1FF',
     onPrimary: '#FFFFFF',
-    danger: '#DC2626',
-    dangerSoft: '#FEF2F2',
+    danger: '#E5383B',
+    dangerSoft: '#FDEEEE',
     success: '#16A34A',
-    successSoft: '#EAF8EF',
-    warning: '#D97706',
-    warningSoft: '#FFF6E5',
+    successSoft: '#E8F7EE',
+    warning: '#D98A06',
+    warningSoft: '#FFF5DE',
     accent: '#7C3AED',
-    accentSoft: '#F3EEFF',
+    accentSoft: '#F2ECFF',
+    shadow: '#1D2B5C',
   },
   dark: {
-    text: '#F1F5F9',
-    textSecondary: '#94A3B8',
-    background: '#0B1120',
-    surface: '#141B2D',
-    border: '#253049',
-    primary: '#3B82F6',
-    primarySoft: '#172554',
+    text: '#F2F4F8',
+    textSecondary: '#98A2B3',
+    background: '#0B1020',
+    surface: '#161C2F',
+    border: '#262E47',
+    primary: '#4C7DF5',
+    primaryEnd: '#7472F5',
+    primarySoft: '#1B2752',
     onPrimary: '#FFFFFF',
     danger: '#F87171',
     dangerSoft: '#2B1518',
@@ -42,6 +46,7 @@ export const Colors = {
     warningSoft: '#2A2110',
     accent: '#A78BFA',
     accentSoft: '#211A38',
+    shadow: '#000000',
   },
 } as const;
 
@@ -83,10 +88,22 @@ export const Spacing = {
 } as const;
 
 export const Radius = {
-  sm: 8,
-  md: 12,
-  lg: 16,
+  sm: 10,
+  md: 14,
+  lg: 20,
+  xl: 24,
   full: 999,
 } as const;
+
+/** The soft drop shadow under cards, the tab bar and primary buttons. */
+export function shadow(color: string, strength = 1) {
+  return {
+    shadowColor: color,
+    shadowOpacity: 0.07 * strength,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2 * strength,
+  };
+}
 
 export const MaxFormWidth = 440;

@@ -37,7 +37,9 @@ export function EmptyState({ icon, title, message, action }: EmptyStateProps) {
 
   return (
     <View style={styles.empty}>
-      <Icon name={icon} color={theme.textSecondary} size={56} />
+      <View style={[styles.emptyIcon, { backgroundColor: theme.primarySoft }]}>
+        <Icon name={icon} color={theme.primary} size={36} />
+      </View>
       <Text style={[styles.emptyTitle, { color: theme.text }]}>{title}</Text>
       {message ? <Text style={[styles.emptyMessage, { color: theme.textSecondary }]}>{message}</Text> : null}
       {action}
@@ -62,6 +64,13 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     paddingVertical: Spacing.six,
     paddingHorizontal: Spacing.four,
+  },
+  emptyIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyTitle: {
     fontSize: 18,

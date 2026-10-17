@@ -3,24 +3,25 @@ import type { ComponentProps } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Icon, type IconName } from '@/components/ui/icon';
-import { Radius, Spacing } from '@/constants/theme';
+import { Radius, shadow, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0] & {
   tabs: { name: string; title: string; icon: IconName }[];
 };
 
-/** Floating dark bar: icons only, the active tab is a light pill with its label. */
+/** Floating white bar; the active tab is a solid brand pill. */
 export function TabBar({ state, navigation, insets, tabs }: TabBarProps) {
   const theme = useTheme();
 
   return (
     <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, Spacing.three), backgroundColor: theme.background }]}>
-      <View style={[styles.bar, { backgroundColor: theme.text }]}>
+      <View style={[styles.bar, { backgroundColor: theme.surface, borderColor: theme.border }, shadow(theme.shadow, 2)]}>
         {state.routes.map((route, index) => {
           const tab = tabs.find((item) => item.name === route.name);
           if (!tab) return null;
           const focused = state.index === index;
+          const color = focused ? theme.onPrimary : theme.textSecondary;
 
           function onPress() {
             const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
@@ -34,9 +35,9 @@ export function TabBar({ state, navigation, insets, tabs }: TabBarProps) {
               accessibilityState={{ selected: focused }}
               accessibilityLabel={tab.title}
               onPress={onPress}
-              style={[styles.tab, focused && { backgroundColor: theme.background }]}>
-              <Icon name={tab.icon} color={focused ? theme.text : theme.textSecondary} size={22} />
-              {focused ? <Text style={[styles.label, { color: theme.text }]}>{tab.title}</Text> : null}
+              style={[styles.tab, focused && [{ backgroundColor: theme.primary }, shadow(theme.primary, 2)]]}>
+              <Icon name={tab.icon} color={color} size={24} />
+              <Text style={[styles.label, { color }]}>{tab.title}</Text>
             </Pressable>
           );
         })}
@@ -53,23 +54,22 @@ const styles = StyleSheet.create({
   bar: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-around',
     alignSelf: 'center',
     width: '100%',
     maxWidth: 480,
     padding: Spacing.two,
-    borderRadius: Radius.full,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: Radius.xl + 4,
   },
   tab: {
-    flexDirection: 'row',
+    flex: 1,
     alignItems: 'center',
-    gap: Spacing.two,
-    paddingHorizontal: Spacing.three + 4,
-    paddingVertical: Spacing.two + 4,
-    borderRadius: Radius.full,
+    gap: 2,
+    paddingVertical: Spacing.two,
+    borderRadius: Radius.lg,
   },
   label: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '600',
   },
 });

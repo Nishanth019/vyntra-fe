@@ -116,8 +116,9 @@ const styles = StyleSheet.create({
   },
   list: {
     flexGrow: 1,
-    gap: Spacing.two + 2,
-    padding: Spacing.three,
+    gap: Spacing.three - 4,
+    paddingHorizontal: Spacing.three + 4,
+    paddingTop: Spacing.three,
     paddingBottom: Spacing.six,
   },
   row: {

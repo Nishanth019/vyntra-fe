@@ -16,8 +16,7 @@ export default function AppLayout() {
 
   return (
     <>
-      {/* Light status bar text on the brand-colored header. */}
-      <StatusBar style="light" />
+      <StatusBar style="auto" />
       <Stack screenOptions={stackOptions}>
         <Stack.Screen name="index" options={{ title: 'Vyntra', headerRight: logout }} />
         <Stack.Screen name="accounts/index" options={{ title: 'Your Organisations', headerRight: logout }} />

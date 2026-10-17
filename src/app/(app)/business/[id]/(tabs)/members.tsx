@@ -1,5 +1,5 @@
-import { router, Tabs, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import { use, useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -11,6 +11,7 @@ import {
 } from "react-native";
 
 import { MemberRow } from "@/components/member-row";
+import { TabHeader, TabsContext } from "@/components/tab-header";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { ErrorBanner } from "@/components/ui/error-banner";
@@ -25,7 +26,6 @@ import { api } from "@/lib/api";
 import { useBusiness } from "@/lib/business";
 import {
   AUTO_INACTIVE_NOTE,
-  fetchMemberCounts,
   isMemberFilterKey,
   MEMBER_FILTERS,
   type MemberFilterKey,
@@ -39,7 +39,6 @@ export default function MembersScreen() {
   const [filter, setFilter] = useState<MemberFilterKey>(
     isMemberFilterKey(params.filter) ? params.filter : "all",
   );
-  const [searchOpen, setSearchOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [search, setSearch] = useState("");
 
@@ -61,11 +60,18 @@ export default function MembersScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.filter]);
 
-  const fetchCounts = useCallback(
-    () => fetchMemberCounts(account.id),
+  // Filter counts come from the dashboard, which also has the unread notifications for the bell.
+  const { setUnread } = use(TabsContext);
+  const fetchDashboard = useCallback(
+    () => api.dashboard(account.id),
     [account.id],
   );
-  const { data: counts, refresh: refreshCounts } = useResource(fetchCounts);
+  const { data: dashboard, refresh: refreshCounts } =
+    useResource(fetchDashboard);
+  const counts = dashboard?.members;
+  useEffect(() => {
+    if (dashboard) setUnread(dashboard.unread_notifications);
+  }, [dashboard, setUnread]);
 
   // Wait until typing pauses before searching.
   useEffect(() => {
@@ -100,11 +106,6 @@ export default function MembersScreen() {
     setFilter(key);
   }
 
-  function toggleSearch() {
-    if (searchOpen) setSearchText("");
-    setSearchOpen(!searchOpen);
-  }
-
   const addMember = () =>
     router.push({
       pathname: "/business/[id]/members/new",
@@ -113,70 +114,60 @@ export default function MembersScreen() {
 
   return (
     <>
-      <Tabs.Screen
-        options={{
-          headerRight: () => (
-            <View style={styles.headerActions}>
-              <HeaderButton
-                icon={searchOpen ? "close" : "search"}
-                label="Search members"
-                onPress={toggleSearch}
-              />
-              <HeaderButton
-                icon="personAdd"
-                label="Add member"
-                onPress={addMember}
-              />
-            </View>
-          ),
-        }}
+      <TabHeader
+        title="Members"
+        subtitle="Manage your members"
+        action={
+          <HeaderButton
+            icon="add"
+            label="Add member"
+            filled
+            onPress={addMember}
+          />
+        }
       />
 
-      <View style={[styles.toolbar, { borderColor: theme.border }]}>
-        <ScrollView
-          ref={chipsRef}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filters}
-        >
-          {MEMBER_FILTERS.map((item) => (
-            <View
-              key={item.key}
-              style={styles.filter}
-              onLayout={(event) => {
-                chipX.current[item.key] = event.nativeEvent.layout.x;
-                if (item.key === filter)
-                  chipsRef.current?.scrollTo({
-                    x: Math.max(0, event.nativeEvent.layout.x - Spacing.three),
-                    animated: false,
-                  });
-              }}
-            >
-              <Chip
-                label={item.label}
-                count={counts?.[item.key] ?? 0}
-                selected={item.key === filter}
-                onPress={() => selectFilter(item.key)}
-              />
-            </View>
-          ))}
-        </ScrollView>
-        {searchOpen ? (
-          <View style={styles.search}>
-            <TextField
-              label="Search members"
-              hideLabel
-              icon="search"
-              placeholder="Name, phone, email or member ID"
-              value={searchText}
-              onChangeText={setSearchText}
-              autoCapitalize="none"
-              autoFocus
-              returnKeyType="search"
+      <View style={styles.search}>
+        <TextField
+          label="Search members"
+          hideLabel
+          icon="search"
+          placeholder="Search name, phone, email or ID"
+          value={searchText}
+          onChangeText={setSearchText}
+          autoCapitalize="none"
+          returnKeyType="search"
+        />
+      </View>
+      <ScrollView
+        ref={chipsRef}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.filtersScroll}
+        contentContainerStyle={styles.filters}
+      >
+        {MEMBER_FILTERS.map((item) => (
+          <View
+            key={item.key}
+            onLayout={(event) => {
+              chipX.current[item.key] = event.nativeEvent.layout.x;
+              if (item.key === filter)
+                chipsRef.current?.scrollTo({
+                  x: Math.max(0, event.nativeEvent.layout.x - Spacing.three),
+                  animated: false,
+                });
+            }}
+          >
+            <Chip
+              pill
+              label={item.label}
+              count={counts?.[item.key] ?? 0}
+              selected={item.key === filter}
+              onPress={() => selectFilter(item.key)}
             />
           </View>
-        ) : null}
-      </View>
+        ))}
+      </ScrollView>
 
       {filter === "expired" || filter === "inactive" ? (
         <View style={[styles.note, { backgroundColor: theme.primarySoft }]}>
@@ -260,31 +251,25 @@ export default function MembersScreen() {
 }
 
 const styles = StyleSheet.create({
-  headerActions: {
-    flexDirection: "row",
-    gap: Spacing.three,
+  search: {
+    paddingHorizontal: Spacing.three + 4,
+    paddingTop: Spacing.two,
   },
-  toolbar: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
+  filtersScroll: {
+    flexGrow: 0,
+    flexShrink: 0,
   },
   filters: {
     gap: Spacing.two,
-    padding: Spacing.three,
-  },
-  filter: {
-    minWidth: 112,
-  },
-  search: {
-    paddingHorizontal: Spacing.three,
-    paddingBottom: Spacing.three,
+    paddingHorizontal: Spacing.three + 4,
+    paddingVertical: Spacing.three,
   },
   error: {
-    padding: Spacing.three,
-    paddingBottom: 0,
+    paddingHorizontal: Spacing.three + 4,
   },
   note: {
-    marginHorizontal: Spacing.three,
-    marginTop: Spacing.three,
+    marginHorizontal: Spacing.three + 4,
+    marginBottom: Spacing.one,
     padding: Spacing.three,
     borderRadius: Radius.md,
   },
@@ -297,8 +282,9 @@ const styles = StyleSheet.create({
   },
   list: {
     flexGrow: 1,
-    gap: Spacing.two + 2,
-    padding: Spacing.three,
+    gap: Spacing.three - 4,
+    paddingHorizontal: Spacing.three + 4,
+    paddingTop: Spacing.two,
     paddingBottom: Spacing.six,
   },
 });

@@ -17,7 +17,7 @@ const styles = StyleSheet.create({
   banner: {
     borderRadius: Radius.md,
     paddingHorizontal: Spacing.three,
-    paddingVertical: 12,
+    paddingVertical: Spacing.three - 2,
   },
   text: {
     fontSize: 14,

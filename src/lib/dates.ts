@@ -24,8 +24,12 @@ export function addDays(date: Date, days: number) {
 
 /** Whole days from today until `value` (negative once it has passed). */
 export function daysUntil(value: string) {
-  const today = parseISODate(toISODate(new Date()));
-  return Math.round((parseISODate(value).getTime() - today.getTime()) / 86_400_000);
+  return daysBetween(toISODate(new Date()), value);
+}
+
+/** Whole days from one `YYYY-MM-DD` date to another. */
+export function daysBetween(from: string, to: string) {
+  return Math.round((parseISODate(to).getTime() - parseISODate(from).getTime()) / 86_400_000);
 }
 
 /** e.g. "12 Oct 2026". */

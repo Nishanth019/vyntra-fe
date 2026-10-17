@@ -2,8 +2,8 @@ import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { membershipStatus, StatusPill } from '@/components/status-pill';
-import { useToneColors } from '@/components/ui/icon-badge';
-import { Radius, Spacing } from '@/constants/theme';
+import { Icon } from '@/components/ui/icon';
+import { Radius, shadow, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { Member } from '@/lib/api';
 import { formatMoney, initials, memberName } from '@/lib/format';
@@ -24,7 +24,6 @@ type PersonRowProps = {
 /** A tappable card for a person (member, staff, admin) with an initials avatar. */
 export function PersonRow({ name, details, alert, trailing, muted = false, onPress }: PersonRowProps) {
   const theme = useTheme();
-  const avatar = useToneColors(muted ? 'neutral' : 'primary');
 
   return (
     <Pressable
@@ -34,10 +33,13 @@ export function PersonRow({ name, details, alert, trailing, muted = false, onPre
       style={({ pressed }) => [
         styles.row,
         { backgroundColor: theme.surface, borderColor: theme.border },
+        shadow(theme.shadow),
         pressed && styles.pressed,
       ]}>
-      <View style={[styles.avatar, { backgroundColor: avatar.background }]}>
-        <Text style={[styles.avatarText, { color: avatar.color }]}>{initials(name)}</Text>
+      <View style={[styles.avatar, { backgroundColor: muted ? theme.border : theme.primary }]}>
+        <Text style={[styles.avatarText, { color: muted ? theme.textSecondary : theme.onPrimary }]}>
+          {initials(name)}
+        </Text>
       </View>
       <View style={styles.body}>
         <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
@@ -55,6 +57,7 @@ export function PersonRow({ name, details, alert, trailing, muted = false, onPre
         ) : null}
       </View>
       {trailing}
+      {onPress ? <Icon name="chevronRight" color={theme.textSecondary} size={18} /> : null}
     </Pressable>
   );
 }
@@ -66,8 +69,8 @@ export function MemberRow({ member, onPress }: { member: Member; onPress?: () =>
     <PersonRow
       name={memberName(member)}
       details={[
-        `#${member.member_code}${member.phone ? ` · ${member.phone}` : ''}`,
-        member.membership?.membership_plan.name,
+        [`#${member.member_code}`, member.membership?.membership_plan.name].filter(Boolean).join(' · '),
+        member.phone,
       ]}
       alert={Number(member.total_due) > 0 ? `Due ${formatMoney(member.total_due)}` : undefined}
       trailing={<StatusPill {...status} />}
@@ -83,21 +86,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.three,
     padding: Spacing.three,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: Radius.lg,
   },
   pressed: {
     opacity: 0.7,
   },
   avatar: {
-    width: 48,
-    height: 48,
+    width: 50,
+    height: 50,
     borderRadius: Radius.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '700',
   },
   body: {
@@ -105,8 +108,8 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   name: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
   },
   detail: {
     fontSize: 13,

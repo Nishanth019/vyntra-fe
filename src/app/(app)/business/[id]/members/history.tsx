@@ -4,7 +4,7 @@ import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } f
 
 import { StatusPill } from '@/components/status-pill';
 import { Card } from '@/components/ui/card';
-import { Chip } from '@/components/ui/chip';
+import { Segmented } from '@/components/ui/segmented';
 import { ErrorBanner } from '@/components/ui/error-banner';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { type Tone, useToneColors } from '@/components/ui/icon-badge';
@@ -47,12 +47,14 @@ export default function MemberHistoryScreen() {
   return (
     <>
       <View style={styles.toggle}>
-        <View style={styles.flex}>
-          <Chip label="Timeline" selected={view === 'timeline'} onPress={() => setView('timeline')} />
-        </View>
-        <View style={styles.flex}>
-          <Chip label="Plans & Payments" selected={view === 'plans'} onPress={() => setView('plans')} />
-        </View>
+        <Segmented
+          options={[
+            { key: 'timeline', label: 'Timeline' },
+            { key: 'plans', label: 'Plans & Payments' },
+          ]}
+          value={view}
+          onChange={setView}
+        />
       </View>
       {view === 'timeline' ? <Timeline memberId={memberId} /> : <Plans memberId={memberId} />}
     </>
@@ -215,9 +217,7 @@ function Loading() {
 
 const styles = StyleSheet.create({
   toggle: {
-    flexDirection: 'row',
-    gap: Spacing.two,
-    paddingHorizontal: Spacing.three,
+    paddingHorizontal: Spacing.three + 4,
     paddingTop: Spacing.three,
   },
   timeline: {

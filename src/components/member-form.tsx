@@ -1,27 +1,30 @@
 import { router } from 'expo-router';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { PlanOption } from '@/components/plan-option';
+import { PaymentMethodPicker } from '@/components/payment-method-picker';
+import { PlanOptions } from '@/components/plan-option';
 import { membershipStatus, StatusPill } from '@/components/status-pill';
 import { Chip } from '@/components/ui/chip';
 import { DateField } from '@/components/ui/date-field';
 import { ErrorBanner } from '@/components/ui/error-banner';
 import { Screen } from '@/components/ui/screen';
-import { Icon } from '@/components/ui/icon';
+import { Icon, type IconName } from '@/components/ui/icon';
 import { TextField } from '@/components/ui/text-field';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { api, ApiError, type Member, type MemberInput, type MembershipPlan } from '@/lib/api';
 import { useBusiness } from '@/lib/business';
-import { confirm } from '@/lib/confirm';
 import { isValidISODate, toISODate } from '@/lib/dates';
 import { formatMoney, memberName } from '@/lib/format';
-import { PAYMENT_METHODS } from '@/lib/payments';
 
-const GENDERS = ['Male', 'Female', 'Other'];
+const GENDERS: { value: string; icon: IconName }[] = [
+  { value: 'Male', icon: 'male' },
+  { value: 'Female', icon: 'female' },
+  { value: 'Other', icon: 'person' },
+];
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_PATTERN = /^\+?\d{7,15}$/;
@@ -35,12 +38,6 @@ type MemberFormProps = {
   suggestedCode?: string;
   /** Saves the member. Throw an ApiError to show its messages on the form. */
   onSubmit: (input: MemberInput) => Promise<void>;
-  /** Deactivates (or, when the member is inactive, reactivates) the member. */
-  onToggleActive?: () => Promise<void>;
-  /** Shown above the member details, e.g. the membership card. */
-  header?: ReactNode;
-  /** Shown below the save button, e.g. attendance shortcuts. */
-  footer?: ReactNode;
 };
 
 export function MemberForm({
@@ -48,9 +45,6 @@ export function MemberForm({
   plans,
   suggestedCode = '',
   onSubmit,
-  onToggleActive,
-  header,
-  footer,
 }: MemberFormProps) {
   const theme = useTheme();
   const { account } = useBusiness();
@@ -88,7 +82,6 @@ export function MemberForm({
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [toggling, setToggling] = useState(false);
 
   const plan = plans.find((item) => item.id === planId);
   const code = values.member_code.trim();
@@ -229,27 +222,6 @@ export function MemberForm({
     }
   }
 
-  async function toggleActive() {
-    if (!member || !onToggleActive) return;
-    if (member.is_active) {
-      const ok = await confirm(
-        'Deactivate member?',
-        `${memberName(member)} will be moved to Inactive. Their history is kept and you can reactivate them anytime.`,
-        'Deactivate',
-      );
-      if (!ok) return;
-    }
-    setToggling(true);
-    try {
-      await onToggleActive();
-    } catch (e) {
-      if (!(e instanceof ApiError)) throw e;
-      setFormError(e.message);
-    } finally {
-      setToggling(false);
-    }
-  }
-
   const addPlan = () => router.push({ pathname: '/business/[id]/plans/new', params: { id: account.id } });
   const field = (name: keyof typeof values) => ({
     value: values[name],
@@ -260,9 +232,8 @@ export function MemberForm({
   return (
     <Screen>
       {formError ? <ErrorBanner message={formError} /> : null}
-      {header}
 
-      <Card icon="person" title="Member Details">
+      <Card title="Member Details" subtitle="Basic information about the member">
         <TextField
           label="Member ID"
           required
@@ -281,17 +252,20 @@ export function MemberForm({
           </View>
         </View>
 
-        <View style={styles.genderRow}>
+        <View style={styles.gender}>
           <Text style={[styles.label, { color: theme.text }]}>Gender</Text>
-          {GENDERS.map((option) => (
-            <View key={option} style={styles.flex}>
-              <Chip
-                label={option}
-                selected={gender === option}
-                onPress={() => setGender(gender === option ? '' : option)}
-              />
-            </View>
-          ))}
+          <View style={styles.row}>
+            {GENDERS.map((option) => (
+              <View key={option.value} style={styles.flex}>
+                <Chip
+                  label={option.value}
+                  icon={option.icon}
+                  selected={gender === option.value}
+                  onPress={() => setGender(gender === option.value ? '' : option.value)}
+                />
+              </View>
+            ))}
+          </View>
         </View>
 
         <TextField
@@ -325,7 +299,6 @@ export function MemberForm({
       </Card>
 
       <Card
-        icon="phone"
         title="Emergency Contact"
         subtitle="Optional"
         action={
@@ -366,7 +339,7 @@ export function MemberForm({
 
       {member ? null : (
         <>
-        <Card icon="plans" title="Plan Details">
+        <Card title="Plan Details" subtitle="Choose a membership plan">
 
           {plans.length === 0 ? (
             <View style={[styles.noPlans, { backgroundColor: theme.dangerSoft }]}>
@@ -376,11 +349,7 @@ export function MemberForm({
               <Button title="Add Plan" icon="add" variant="danger" onPress={addPlan} />
             </View>
           ) : (
-            <View style={styles.plans}>
-              {plans.map((item) => (
-                <PlanOption key={item.id} plan={item} selected={item.id === planId} onPress={() => setPlanId(item.id)} />
-              ))}
-            </View>
+            <PlanOptions plans={plans} value={planId} onChange={setPlanId} />
           )}
           {errors.membership_plan_id ? (
             <Text style={[styles.error, { color: theme.danger }]}>{errors.membership_plan_id}</Text>
@@ -417,14 +386,14 @@ export function MemberForm({
         </Card>
 
         <Card
-          icon="money"
           title="Payment"
-          subtitle={recordPayment ? undefined : 'Turn on to record money received now.'}
+          subtitle={recordPayment ? 'Money received now' : 'Turn on to record money received now.'}
           action={
             <Switch
               value={recordPayment}
               onValueChange={setRecordPayment}
               trackColor={{ true: theme.primary, false: theme.border }}
+              thumbColor={theme.onPrimary}
               accessibilityLabel="Record a payment"
             />
           }>
@@ -442,17 +411,10 @@ export function MemberForm({
                 }}
                 error={errors.payment_amount}
               />
-              <View style={styles.row}>
-                {PAYMENT_METHODS.map((method) => (
-                  <View key={method.value} style={styles.flex}>
-                    <Chip
-                      label={method.label}
-                      selected={payment.method === method.value}
-                      onPress={() => setPayment((current) => ({ ...current, method: method.value }))}
-                    />
-                  </View>
-                ))}
-              </View>
+              <PaymentMethodPicker
+                value={payment.method}
+                onChange={(method) => setPayment((current) => ({ ...current, method }))}
+              />
               <TextField
                 label="Transaction Reference"
                 icon="document"
@@ -473,18 +435,12 @@ export function MemberForm({
         </>
       )}
 
-      <Button title={member ? 'Save Changes' : 'Add Member'} loading={submitting} onPress={submit} />
-      {footer}
-
-      {member && onToggleActive ? (
-        member.is_active ? (
-          <Card icon="warning" title="Danger Zone" subtitle="Moves the member to Inactive. You can reactivate them anytime." tone="danger">
-            <Button title="Deactivate Member" icon="personOff" variant="danger" loading={toggling} onPress={toggleActive} />
-          </Card>
-        ) : (
-          <Button title="Reactivate Member" icon="check" variant="secondary" loading={toggling} onPress={toggleActive} />
-        )
-      ) : null}
+      <Button
+        title={member ? 'Save Changes' : 'Add Member'}
+        trailingIcon={member ? undefined : 'arrowRight'}
+        loading={submitting}
+        onPress={submit}
+      />
     </Screen>
   );
 }
@@ -550,9 +506,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  genderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  gender: {
     gap: Spacing.two,
   },
   error: {
@@ -567,8 +521,5 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     lineHeight: 21,
-  },
-  plans: {
-    gap: Spacing.two,
   },
 });

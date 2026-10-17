@@ -8,9 +8,11 @@ import { Button } from '@/components/ui/button';
 import { ErrorBanner } from '@/components/ui/error-banner';
 import { HeaderButton } from '@/components/ui/header-button';
 import { Icon } from '@/components/ui/icon';
+import { IconBadge, type Tone } from '@/components/ui/icon-badge';
 import { EmptyState } from '@/components/ui/states';
-import { Radius, Spacing } from '@/constants/theme';
+import { Radius, shadow, Spacing } from '@/constants/theme';
 import { usePaginatedList } from '@/hooks/use-paginated-list';
+import { useResource } from '@/hooks/use-resource';
 import { useTheme } from '@/hooks/use-theme';
 import { api, ApiError, type Attendance } from '@/lib/api';
 import { useBusiness } from '@/lib/business';
@@ -31,6 +33,10 @@ export default function AttendanceScreen() {
     [account.id, date],
   );
   const list = usePaginatedList(fetchPage);
+  // Today's "not in yet" needs the number of active members.
+  const fetchDashboard = useCallback(() => api.dashboard(account.id), [account.id]);
+  const { data: dashboard } = useResource(fetchDashboard);
+  const active = dashboard?.members.live;
 
   function changeDate(days: number) {
     list.reset();
@@ -65,13 +71,13 @@ export default function AttendanceScreen() {
                 label="Attendance report"
                 onPress={() => router.push({ pathname: '/business/[id]/attendance/report', params })}
               />
-              <HeaderButton icon="add" label="Mark attendance" onPress={markAttendance} />
+              <HeaderButton icon="add" label="Mark attendance" filled onPress={markAttendance} />
             </View>
           ),
         }}
       />
 
-      <View style={[styles.dateBar, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+      <View style={[styles.dateBar, { backgroundColor: theme.surface, borderColor: theme.border }, shadow(theme.shadow)]}>
         <DateArrow icon="chevronLeft" label="Previous day" onPress={() => changeDate(-1)} />
         <View style={styles.dateText}>
           <Text style={[styles.date, { color: theme.text }]}>{formatLongDate(date)}</Text>
@@ -90,6 +96,20 @@ export default function AttendanceScreen() {
         </View>
         <DateArrow icon="chevronRight" label="Next day" disabled={date >= today} onPress={() => changeDate(1)} />
       </View>
+
+      {list.items ? (
+        <View style={[styles.stats, { backgroundColor: theme.surface, borderColor: theme.border }, shadow(theme.shadow)]}>
+          <Stat label="Present" value={list.count} icon="userGroup" tone="success" />
+          {date === today && active !== undefined ? (
+            <>
+              <View style={[styles.statDivider, { backgroundColor: theme.border }]} />
+              <Stat label="Not in yet" value={Math.max(0, active - list.count)} icon="personOff" tone="danger" />
+              <View style={[styles.statDivider, { backgroundColor: theme.border }]} />
+              <Stat label="Active" value={active} icon="people" tone="neutral" />
+            </>
+          ) : null}
+        </View>
+      ) : null}
 
       {list.error || actionError ? (
         <View style={styles.error}>
@@ -149,6 +169,20 @@ export default function AttendanceScreen() {
   );
 }
 
+function Stat({ label, value, icon, tone }: { label: string; value: number; icon: 'userGroup' | 'personOff' | 'people'; tone: Tone }) {
+  const theme = useTheme();
+
+  return (
+    <View style={styles.stat}>
+      <IconBadge name={icon} tone={tone} size={36} />
+      <View>
+        <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{label}</Text>
+        <Text style={[styles.statValue, { color: theme.text }]}>{value}</Text>
+      </View>
+    </View>
+  );
+}
+
 function DateArrow({
   icon,
   label,
@@ -182,17 +216,45 @@ function DateArrow({
 const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
-    gap: Spacing.three,
+    gap: Spacing.two + 2,
   },
   dateBar: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.three,
-    margin: Spacing.three,
-    marginBottom: 0,
+    marginHorizontal: Spacing.three + 4,
+    marginTop: Spacing.three,
     padding: Spacing.three,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: Radius.lg,
+  },
+  stats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: Spacing.three + 4,
+    marginTop: Spacing.three - 4,
+    paddingVertical: Spacing.three,
+    paddingHorizontal: Spacing.two,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: Radius.lg,
+  },
+  stat: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.two,
+  },
+  statDivider: {
+    width: 1,
+    height: 36,
+  },
+  statLabel: {
+    fontSize: 13,
+  },
+  statValue: {
+    fontSize: 22,
+    fontWeight: '800',
   },
   dateText: {
     flex: 1,
@@ -218,16 +280,17 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   error: {
-    padding: Spacing.three,
-    paddingBottom: 0,
+    paddingHorizontal: Spacing.three + 4,
+    paddingTop: Spacing.three,
   },
   loader: {
     marginTop: Spacing.six,
   },
   list: {
     flexGrow: 1,
-    gap: Spacing.two + 2,
-    padding: Spacing.three,
+    gap: Spacing.three - 4,
+    paddingHorizontal: Spacing.three + 4,
+    paddingTop: Spacing.three,
     paddingBottom: Spacing.six,
   },
   checkOut: {

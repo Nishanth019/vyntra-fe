@@ -1,49 +1,36 @@
 import { Tabs } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import { SideMenu } from '@/components/side-menu';
 import { TabBar } from '@/components/tab-bar';
-import { HeaderButton } from '@/components/ui/header-button';
+import { TabsContext } from '@/components/tab-header';
 import { type IconName } from '@/components/ui/icon';
 import { useTheme } from '@/hooks/use-theme';
-import { useBusiness } from '@/lib/business';
 
 const TABS: { name: string; title: string; icon: IconName }[] = [
-  { name: 'index', title: 'Home', icon: 'dashboard' },
+  { name: 'index', title: 'Home', icon: 'home' },
   { name: 'members', title: 'Members', icon: 'people' },
   { name: 'insights', title: 'Insights', icon: 'report' },
 ];
 
-/** Bottom tabs of a business (Home, Members, Insights) with the side menu on every tab. */
+/** Bottom tabs of a business (Home, Members, Insights); each draws its own header with the menu button. */
 export default function BusinessTabsLayout() {
   const theme = useTheme();
-  const { account } = useBusiness();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [unread, setUnread] = useState(0);
   const closeMenu = useCallback(() => setMenuOpen(false), []);
+  const tabs = useMemo(() => ({ openMenu: () => setMenuOpen(true), unread, setUnread }), [unread]);
 
   return (
-    <>
+    <TabsContext value={tabs}>
       <Tabs
         tabBar={(props) => <TabBar {...props} tabs={TABS} />}
-        screenOptions={{
-          headerStyle: { backgroundColor: theme.primary },
-          headerTintColor: theme.onPrimary,
-          headerTitleStyle: { fontWeight: '600' },
-          headerShadowVisible: false,
-          headerLeftContainerStyle: { paddingLeft: 16 },
-          headerRightContainerStyle: { paddingRight: 16 },
-          headerLeft: () => <HeaderButton icon="menu" label="Open menu" onPress={() => setMenuOpen(true)} />,
-          sceneStyle: { backgroundColor: theme.background },
-        }}>
+        screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: theme.background } }}>
         {TABS.map((tab) => (
-          <Tabs.Screen
-            key={tab.name}
-            name={tab.name}
-            options={{ title: tab.title, headerTitle: tab.name === 'index' ? account.name : tab.title }}
-          />
+          <Tabs.Screen key={tab.name} name={tab.name} options={{ title: tab.title }} />
         ))}
       </Tabs>
       <SideMenu visible={menuOpen} onClose={closeMenu} />
-    </>
+    </TabsContext>
   );
 }

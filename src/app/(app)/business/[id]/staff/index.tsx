@@ -49,7 +49,7 @@ export default function StaffScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ headerRight: () => <HeaderButton icon="personAdd" label="Add staff" onPress={addStaff} /> }} />
+      <Stack.Screen options={{ headerRight: () => <HeaderButton icon="add" label="Add staff" filled onPress={addStaff} /> }} />
 
       <View style={[styles.toolbar, { borderColor: theme.border }]}>
         <TextField
@@ -65,6 +65,7 @@ export default function StaffScreen() {
           {FILTERS.map((filter) => (
             <View key={filter.label} style={styles.flex}>
               <Chip
+                pill
                 label={filter.label}
                 selected={filter.value === isActive}
                 onPress={() => {
@@ -131,8 +132,8 @@ const styles = StyleSheet.create({
   },
   toolbar: {
     gap: Spacing.three,
-    padding: Spacing.three,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: Spacing.three + 4,
+    paddingTop: Spacing.three,
   },
   filters: {
     flexDirection: 'row',
@@ -147,8 +148,9 @@ const styles = StyleSheet.create({
   },
   list: {
     flexGrow: 1,
-    gap: Spacing.two + 2,
-    padding: Spacing.three,
+    gap: Spacing.three - 4,
+    paddingHorizontal: Spacing.three + 4,
+    paddingTop: Spacing.three,
     paddingBottom: Spacing.six,
   },
 });

@@ -1,11 +1,12 @@
 import Constants from 'expo-constants';
 import { router, type Href } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { useEffect, type ReactNode } from 'react';
-import { BackHandler, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeIn, SlideInLeft } from 'react-native-reanimated';
+import type { ReactNode } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, { SlideInLeft } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Gradient } from '@/components/ui/gradient';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { IconBadge, type Tone } from '@/components/ui/icon-badge';
 import { Radius, Spacing } from '@/constants/theme';
@@ -27,16 +28,6 @@ export function SideMenu({ visible, onClose }: SideMenuProps) {
   const { account } = useBusiness();
   const params = { id: account.id };
 
-  // Android back closes the menu.
-  useEffect(() => {
-    if (!visible) return;
-    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      onClose();
-      return true;
-    });
-    return () => subscription.remove();
-  }, [visible, onClose]);
-
   function go(href: Href) {
     onClose();
     router.push(href);
@@ -49,14 +40,20 @@ export function SideMenu({ visible, onClose }: SideMenuProps) {
   }
 
   return (
-    // Drawn over the whole screen (tab bar and system bars included) rather than in a Modal,
-    // which on some Android phones stops short of the navigation bar.
-    visible ? (
-      <Animated.View entering={FadeIn.duration(150)} style={styles.overlay}>
+    // Translucent system bars let the menu run from the very top to the very bottom of the screen.
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      navigationBarTranslucent
+      onRequestClose={onClose}>
+      <View style={styles.overlay}>
         <Animated.View
           entering={SlideInLeft.duration(220)}
           style={[styles.panel, { backgroundColor: theme.background }]}>
-          <View style={[styles.profile, { backgroundColor: theme.primary, paddingTop: insets.top + Spacing.four }]}>
+          <View style={[styles.profile, { paddingTop: insets.top + Spacing.four }]}>
+            <Gradient from={theme.primary} to={theme.primaryEnd} />
             <View style={[styles.avatar, { backgroundColor: theme.onPrimary }]}>
               <Text style={[styles.avatarText, { color: theme.primary }]}>{initials(admin?.full_name ?? '')}</Text>
             </View>
@@ -83,7 +80,7 @@ export function SideMenu({ visible, onClose }: SideMenuProps) {
             </Text>
           </View>
 
-          <ScrollView contentContainerStyle={styles.items}>
+          <ScrollView style={styles.flex} contentContainerStyle={styles.items}>
             <Section title="Manage">
               <MenuRow
                 icon="store"
@@ -199,8 +196,8 @@ export function SideMenu({ visible, onClose }: SideMenuProps) {
         </Animated.View>
 
         <Pressable accessibilityLabel="Close menu" style={styles.backdrop} onPress={onClose} />
-      </Animated.View>
-    ) : null
+      </View>
+    </Modal>
   );
 }
 
@@ -247,24 +244,26 @@ function MenuRow({ icon, title, subtitle, onPress, tone = 'primary' }: MenuRowPr
 
 const styles = StyleSheet.create({
   overlay: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    zIndex: 100,
-    elevation: 100,
+    flex: 1,
     flexDirection: 'row',
     backgroundColor: 'rgba(15, 23, 42, 0.45)',
   },
   panel: {
     width: '82%',
     maxWidth: 340,
+    height: '100%',
+    borderTopRightRadius: Radius.xl,
+    borderBottomRightRadius: Radius.xl,
+    overflow: 'hidden',
   },
   backdrop: {
     flex: 1,
   },
+  flex: {
+    flex: 1,
+  },
   profile: {
+    overflow: 'hidden',
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.three,

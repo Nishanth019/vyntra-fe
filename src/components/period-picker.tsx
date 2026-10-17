@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Icon } from '@/components/ui/icon';
-import { Radius, Spacing } from '@/constants/theme';
+import { Radius, shadow, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { Period, PeriodKey } from '@/lib/periods';
 
@@ -16,11 +16,11 @@ type PeriodPickerProps = {
 export function PeriodPicker({ periods, value, onChange }: PeriodPickerProps) {
   const theme = useTheme();
   const anchor = useRef<View>(null);
-  const [menu, setMenu] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [menu, setMenu] = useState<{ top: number; width: number } | null>(null);
   const selected = periods.find((period) => period.key === value)!;
 
   function open() {
-    anchor.current?.measureInWindow((left, top, width, height) => setMenu({ top: top + height + 4, left, width }));
+    anchor.current?.measureInWindow((_left, top, width, height) => setMenu({ top: top + height + 4, width }));
   }
 
   return (
@@ -30,18 +30,24 @@ export function PeriodPicker({ periods, value, onChange }: PeriodPickerProps) {
         accessibilityRole="button"
         accessibilityLabel={`Period: ${selected.label}`}
         onPress={open}
-        style={[styles.field, { backgroundColor: theme.surface, borderColor: theme.primary }]}>
+        style={[styles.field, { backgroundColor: theme.surface, borderColor: theme.border }, shadow(theme.shadow)]}>
         <Text style={[styles.value, { color: theme.text }]}>{selected.label}</Text>
-        <Icon name="chevronDown" color={theme.textSecondary} size={20} />
+        <Icon name="chevronDown" color={theme.text} size={18} />
       </Pressable>
 
-      <Modal visible={menu !== null} transparent animationType="fade" onRequestClose={() => setMenu(null)}>
+      <Modal
+        visible={menu !== null}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        navigationBarTranslucent
+        onRequestClose={() => setMenu(null)}>
         <Pressable accessibilityLabel="Close" style={StyleSheet.absoluteFill} onPress={() => setMenu(null)} />
         {menu ? (
           <View
             style={[
               styles.menu,
-              { top: menu.top, left: menu.left, minWidth: menu.width, backgroundColor: theme.surface, borderColor: theme.border },
+              { top: menu.top, right: Spacing.three, minWidth: Math.max(menu.width, 180), backgroundColor: theme.surface, borderColor: theme.border },
             ]}>
             {periods.map((period) => (
               <Pressable
@@ -73,15 +79,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: Spacing.two,
-    minWidth: 160,
     paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two + 4,
-    borderWidth: 1.5,
+    paddingVertical: Spacing.two + 2,
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: Radius.md,
   },
   value: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
   },
   menu: {
     position: 'absolute',

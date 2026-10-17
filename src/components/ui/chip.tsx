@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { Icon, type IconName } from '@/components/ui/icon';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -7,15 +8,17 @@ type ChipProps = {
   label: string;
   selected: boolean;
   onPress: () => void;
-  /** Second line, e.g. a plan's price. */
-  detail?: string;
+  icon?: IconName;
   /** Shown as a small counter badge, e.g. members in a filter. */
   count?: number;
+  /** Fully rounded, for filter rows; option groups use rounded squares. */
+  pill?: boolean;
 };
 
-/** A selectable pill for single-choice options. */
-export function Chip({ label, selected, onPress, detail, count }: ChipProps) {
+/** A selectable option: solid brand color when selected, soft grey otherwise. */
+export function Chip({ label, selected, onPress, icon, count, pill = false }: ChipProps) {
   const theme = useTheme();
+  const color = selected ? theme.onPrimary : theme.textSecondary;
 
   return (
     <Pressable
@@ -24,22 +27,23 @@ export function Chip({ label, selected, onPress, detail, count }: ChipProps) {
       onPress={onPress}
       style={({ pressed }) => [
         styles.chip,
+        pill && styles.pill,
         selected
-          ? { backgroundColor: theme.primarySoft, borderColor: theme.primary }
+          ? { backgroundColor: theme.primary, borderColor: theme.primary }
           : { backgroundColor: theme.surface, borderColor: theme.border },
         pressed && styles.pressed,
       ]}>
+      {icon ? <Icon name={icon} color={selected ? theme.onPrimary : theme.text} size={18} /> : null}
       <Text
-        style={[styles.label, { color: selected ? theme.primary : theme.text }]}
+        style={[styles.label, { color: selected ? theme.onPrimary : theme.text }]}
         numberOfLines={1}
         adjustsFontSizeToFit
         minimumFontScale={0.75}>
         {label}
       </Text>
-      {detail ? <Text style={[styles.detail, { color: theme.textSecondary }]}>{detail}</Text> : null}
       {count !== undefined ? (
-        <View style={[styles.count, { backgroundColor: selected ? theme.primary : theme.primarySoft }]}>
-          <Text style={[styles.countText, { color: selected ? theme.onPrimary : theme.primary }]}>{count}</Text>
+        <View style={[styles.count, { backgroundColor: selected ? theme.onPrimary : theme.background }]}>
+          <Text style={[styles.countText, { color: selected ? theme.primary : color }]}>{count}</Text>
         </View>
       ) : null}
     </Pressable>
@@ -48,32 +52,35 @@ export function Chip({ label, selected, onPress, detail, count }: ChipProps) {
 
 const styles = StyleSheet.create({
   chip: {
-    borderWidth: 1.5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.one + 2,
+    minHeight: 46,
+    borderWidth: 1,
     borderRadius: Radius.md,
     paddingHorizontal: Spacing.two,
-    paddingVertical: Spacing.two + 2,
-    alignItems: 'center',
-    gap: 2,
+  },
+  pill: {
+    minHeight: 42,
+    borderRadius: Radius.full,
+    paddingHorizontal: Spacing.three,
   },
   pressed: {
     opacity: 0.75,
   },
   label: {
+    flexShrink: 1,
     fontSize: 15,
     fontWeight: '600',
-    textAlign: 'center',
-  },
-  detail: {
-    fontSize: 13,
   },
   count: {
-    minWidth: 28,
-    height: 28,
+    minWidth: 24,
+    height: 24,
     borderRadius: Radius.full,
-    paddingHorizontal: Spacing.two,
+    paddingHorizontal: 6,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: Spacing.one,
   },
   countText: {
     fontSize: 13,

@@ -113,8 +113,8 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 52,
-    borderWidth: 1.5,
+    height: 54,
+    borderWidth: 1,
     borderRadius: Radius.md,
   },
   multilineRow: {

@@ -1,6 +1,7 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Radius, Spacing } from '@/constants/theme';
+import { Icon } from '@/components/ui/icon';
+import { Radius, shadow, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 type ListCardProps = {
@@ -24,6 +25,7 @@ export function ListCard({ title, subtitle, onPress, loading = false, disabled =
       style={({ pressed }) => [
         styles.card,
         { backgroundColor: theme.surface, borderColor: theme.border },
+        shadow(theme.shadow),
         (pressed || disabled) && styles.dimmed,
       ]}>
       <View style={[styles.badge, { backgroundColor: theme.primarySoft }]}>
@@ -42,7 +44,7 @@ export function ListCard({ title, subtitle, onPress, loading = false, disabled =
       {loading ? (
         <ActivityIndicator color={theme.primary} />
       ) : (
-        <Text style={[styles.chevron, { color: theme.textSecondary }]}>›</Text>
+        <Icon name="chevronRight" color={theme.textSecondary} size={20} />
       )}
     </Pressable>
   );
@@ -54,15 +56,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.three,
     padding: Spacing.three,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: Radius.lg,
   },
   dimmed: {
     opacity: 0.7,
   },
   badge: {
-    width: 48,
-    height: 48,
+    width: 52,
+    height: 52,
     borderRadius: Radius.md,
     alignItems: 'center',
     justifyContent: 'center',
@@ -82,9 +84,5 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     lineHeight: 20,
-  },
-  chevron: {
-    fontSize: 26,
-    fontWeight: '300',
   },
 });

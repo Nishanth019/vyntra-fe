@@ -5,11 +5,12 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ErrorBanner } from '@/components/ui/error-banner';
+import { Gradient } from '@/components/ui/gradient';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { IconBadge } from '@/components/ui/icon-badge';
 import { Screen } from '@/components/ui/screen';
 import { TextField } from '@/components/ui/text-field';
-import { Radius, Spacing } from '@/constants/theme';
+import { Radius, shadow, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { api, ApiError, type Admin } from '@/lib/api';
 import { confirm } from '@/lib/confirm';
@@ -60,15 +61,24 @@ function DeleteAccount({ onDeleted }: { onDeleted: () => void }) {
   }
 
   return (
-    <Card icon="warning" title="Delete Account" subtitle="Permanently delete your Vyntra login." tone="danger">
+    <Card title="Danger Zone" tone="danger">
+      <View style={styles.headerRow}>
+        <View style={[styles.dangerIcon, { backgroundColor: theme.surface }]}>
+          <Icon name="trash" color={theme.danger} size={22} />
+        </View>
+        <View style={styles.flex}>
+          <Text style={[styles.dangerTitle, { color: theme.text }]}>Delete Account</Text>
+          <Text style={[styles.email, { color: theme.textSecondary }]}>Permanently delete your Vyntra login.</Text>
+        </View>
+      </View>
       {error ? <ErrorBanner message={error} /> : null}
-      <Button title="Delete My Account" icon="block" variant="danger" loading={deleting} onPress={remove} />
+      <Button title="Delete My Account" variant="destructive" loading={deleting} onPress={remove} />
       <View style={styles.links}>
         <Pressable accessibilityRole="link" onPress={() => WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL)}>
-          <Text style={[styles.link, { color: theme.danger }]}>Privacy Policy</Text>
+          <Text style={[styles.link, { color: theme.primary }]}>Privacy Policy</Text>
         </Pressable>
         <Pressable accessibilityRole="link" onPress={() => WebBrowser.openBrowserAsync(ACCOUNT_DELETION_URL)}>
-          <Text style={[styles.link, { color: theme.danger }]}>What gets deleted</Text>
+          <Text style={[styles.link, { color: theme.primary }]}>What gets deleted</Text>
         </Pressable>
       </View>
     </Card>
@@ -81,8 +91,9 @@ function ProfileHeader({ admin }: { admin: Admin }) {
   return (
     <Card>
       <View style={styles.headerRow}>
-        <View style={[styles.avatar, { backgroundColor: theme.primarySoft }]}>
-          <Text style={[styles.avatarText, { color: theme.primary }]}>{initials(admin.full_name)}</Text>
+        <View style={[styles.avatar, shadow(theme.primary, 2)]}>
+          <Gradient from={theme.primary} to={theme.primaryEnd} />
+          <Text style={[styles.avatarText, { color: theme.onPrimary }]}>{initials(admin.full_name)}</Text>
         </View>
         <View style={styles.flex}>
           <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
@@ -92,8 +103,8 @@ function ProfileHeader({ admin }: { admin: Admin }) {
             {admin.email}
           </Text>
           <View style={styles.badges}>
-            <Badge icon="verified" label={admin.is_active ? 'Active' : 'Inactive'} color={theme.primary} background={theme.primarySoft} />
-            <Badge icon="shield" label="Admin" color={theme.success} background={theme.successSoft} />
+            <Badge icon="checkCircle" label={admin.is_active ? 'Active' : 'Inactive'} color={theme.success} background={theme.successSoft} />
+            <Badge icon="crown" label="Admin" color={theme.primary} background={theme.primarySoft} />
           </View>
         </View>
       </View>
@@ -167,7 +178,7 @@ function PersonalInformation({ admin }: { admin: Admin }) {
   );
 
   return (
-    <Card icon="person" title="Personal Information" action={editButton}>
+    <Card title="Personal Information" action={editButton}>
       {editing ? (
         <>
           {formError ? <ErrorBanner message={formError} /> : null}
@@ -218,7 +229,7 @@ function InfoRow({ icon, label, value, last = false }: { icon: IconName; label: 
 
   return (
     <View style={[styles.infoRow, !last && { borderBottomColor: theme.border, borderBottomWidth: StyleSheet.hairlineWidth }]}>
-      <IconBadge name={icon} tone="neutral" />
+      <IconBadge name={icon} tone="primary" />
       <View style={styles.flex}>
         <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>{label}</Text>
         <Text style={[styles.infoValue, { color: theme.text }]} selectable>
@@ -285,7 +296,7 @@ function SecuritySection() {
   );
 
   return (
-    <Card icon="lock" title="Security" subtitle="Update your account password" action={toggle}>
+    <Card title="Security" subtitle="Update your account password" action={toggle}>
       {message ? (
         message.success ? (
           <Text style={[styles.success, { color: theme.success }]}>{message.text}</Text>
@@ -346,7 +357,17 @@ const styles = StyleSheet.create({
   link: {
     fontSize: 14,
     fontWeight: '600',
-    textDecorationLine: 'underline',
+  },
+  dangerIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dangerTitle: {
+    fontSize: 16,
+    fontWeight: '700',
   },
   flex: {
     flex: 1,
@@ -357,9 +378,10 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
   },
   avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: Radius.md,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -71,6 +71,7 @@ export default function SignupScreen() {
 
       <TextField
         label="Full name"
+        icon="person"
         placeholder="Your name"
         value={values.full_name}
         onChangeText={(text) => update('full_name', text)}
@@ -85,6 +86,7 @@ export default function SignupScreen() {
       <TextField
         ref={mobileRef}
         label="Mobile number"
+        icon="phone"
         placeholder="9876543210"
         value={values.mobile_no}
         onChangeText={(text) => update('mobile_no', text.replace(/\D/g, ''))}
@@ -100,6 +102,7 @@ export default function SignupScreen() {
       <TextField
         ref={emailRef}
         label="Email"
+        icon="mail"
         placeholder="you@example.com"
         value={values.email}
         onChangeText={(text) => update('email', text)}
@@ -115,6 +118,7 @@ export default function SignupScreen() {
       <TextField
         ref={passwordRef}
         label="Password"
+        icon="lock"
         placeholder="At least 8 characters"
         password
         value={values.password}
@@ -127,7 +131,7 @@ export default function SignupScreen() {
         onSubmitEditing={submit}
       />
 
-      <Button title="Create account" loading={submitting} onPress={submit} />
+      <Button title="Create account" trailingIcon="arrowRight" loading={submitting} onPress={submit} />
     </AuthLayout>
   );
 }

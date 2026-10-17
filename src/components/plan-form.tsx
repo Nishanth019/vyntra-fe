@@ -85,7 +85,7 @@ export function PlanForm({ plan, onSubmit }: PlanFormProps) {
     <Screen>
       {formError ? <ErrorBanner message={formError} /> : null}
 
-      <Card icon="plans" title="Plan Details" subtitle={preview ?? 'Members choose from these plans when they join.'}>
+      <Card title="Plan Details" subtitle={preview ?? 'Members choose from these plans when they join.'}>
         <TextField
           label="Plan Name"
           required
@@ -162,6 +162,7 @@ export function PlanForm({ plan, onSubmit }: PlanFormProps) {
               value={isActive}
               onValueChange={setIsActive}
               trackColor={{ true: theme.primary, false: theme.border }}
+              thumbColor={theme.onPrimary}
             />
           </View>
         ) : null}

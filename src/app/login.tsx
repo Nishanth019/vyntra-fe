@@ -48,13 +48,15 @@ export default function LoginScreen() {
   return (
     <AuthLayout
       title="Welcome back"
-      subtitle="Log in to manage your business."
+      subtitle="Log in to manage your business"
       footer={{ prompt: 'New to Vyntra?', linkLabel: 'Create an account', href: '/signup' }}>
       {formError ? <ErrorBanner message={formError} /> : null}
 
       <TextField
         label="Email or mobile number"
-        placeholder="you@example.com"
+        hideLabel
+        icon="mail"
+        placeholder="Email or mobile number"
         value={values.login}
         onChangeText={(text) => update('login', text)}
         error={errors.login}
@@ -69,7 +71,9 @@ export default function LoginScreen() {
       <TextField
         ref={passwordRef}
         label="Password"
-        placeholder="Your password"
+        hideLabel
+        icon="lock"
+        placeholder="Password"
         password
         value={values.password}
         onChangeText={(text) => update('password', text)}
@@ -81,7 +85,7 @@ export default function LoginScreen() {
         onSubmitEditing={submit}
       />
 
-      <Button title="Log in" loading={submitting} onPress={submit} />
+      <Button title="Log in" trailingIcon="arrowRight" loading={submitting} onPress={submit} />
     </AuthLayout>
   );
 }

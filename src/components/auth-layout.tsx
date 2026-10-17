@@ -3,7 +3,9 @@ import type { PropsWithChildren } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { MaxFormWidth, Radius, Spacing } from '@/constants/theme';
+import { Gradient } from '@/components/ui/gradient';
+import { Icon } from '@/components/ui/icon';
+import { MaxFormWidth, Radius, shadow, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 type AuthLayoutProps = PropsWithChildren<{
@@ -18,6 +20,9 @@ export function AuthLayout({ title, subtitle, footer, children }: AuthLayoutProp
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+      <View style={styles.art}>
+        <Icon name="dumbbell" color={theme.primarySoft} size={260} />
+      </View>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
           contentContainerStyle={styles.scroll}
@@ -25,10 +30,12 @@ export function AuthLayout({ title, subtitle, footer, children }: AuthLayoutProp
           showsVerticalScrollIndicator={false}>
           <View style={styles.content}>
             <View style={styles.brand}>
-              <View style={[styles.logo, { backgroundColor: theme.primary }]}>
+              <View style={[styles.logo, shadow(theme.primary, 3)]}>
+                <Gradient from={theme.primary} to={theme.primaryEnd} />
                 <Text style={[styles.logoText, { color: theme.onPrimary }]}>V</Text>
               </View>
               <Text style={[styles.brandName, { color: theme.text }]}>Vyntra</Text>
+              <Text style={[styles.tagline, { color: theme.textSecondary }]}>FITNESS FUELS PROGRESS</Text>
             </View>
 
             <View style={styles.heading}>
@@ -69,38 +76,53 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     gap: Spacing.five,
   },
+  art: {
+    position: 'absolute',
+    right: -50,
+    bottom: -40,
+    transform: [{ rotate: '-25deg' }],
+  },
   brand: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.two + 2,
+    gap: Spacing.one,
   },
   logo: {
-    width: 40,
-    height: 40,
-    borderRadius: Radius.md,
+    width: 84,
+    height: 84,
+    borderRadius: Radius.xl,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: Spacing.two,
   },
   logoText: {
-    fontSize: 22,
-    fontWeight: '800',
+    fontSize: 46,
+    fontWeight: '900',
   },
   brandName: {
-    fontSize: 22,
-    fontWeight: '700',
-    letterSpacing: -0.3,
+    fontSize: 34,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  tagline: {
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 3,
   },
   heading: {
+    alignItems: 'center',
     gap: Spacing.two,
   },
   title: {
-    fontSize: 30,
-    fontWeight: '700',
-    letterSpacing: -0.5,
+    fontSize: 32,
+    fontWeight: '800',
+    letterSpacing: -0.6,
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
     lineHeight: 24,
+    textAlign: 'center',
   },
   form: {
     gap: Spacing.three + 4,

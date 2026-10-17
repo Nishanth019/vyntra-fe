@@ -49,24 +49,25 @@ export function Screen({
 const styles = StyleSheet.create({
   scroll: {
     flexGrow: 1,
-    padding: Spacing.four,
+    paddingHorizontal: Spacing.three + 4,
+    paddingTop: Spacing.three,
     paddingBottom: Spacing.six,
   },
   content: {
     width: '100%',
     alignSelf: 'center',
-    gap: Spacing.four,
+    gap: Spacing.three + 2,
   },
   heading: {
-    gap: Spacing.two,
+    gap: Spacing.one,
   },
   title: {
-    fontSize: 30,
-    fontWeight: '700',
+    fontSize: 28,
+    fontWeight: '800',
     letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 15,
+    lineHeight: 22,
   },
 });

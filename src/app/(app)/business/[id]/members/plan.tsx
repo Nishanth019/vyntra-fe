@@ -3,7 +3,8 @@ import { useCallback, useState } from 'react';
 import { StyleSheet, Switch, Text, View } from 'react-native';
 
 import type { PlanMode } from '@/components/membership-card';
-import { PlanOption } from '@/components/plan-option';
+import { PaymentMethodPicker } from '@/components/payment-method-picker';
+import { PlanOptions } from '@/components/plan-option';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Chip } from '@/components/ui/chip';
@@ -20,7 +21,6 @@ import { useBusiness } from '@/lib/business';
 import { confirm } from '@/lib/confirm';
 import { addDays, daysUntil, formatDate, isValidISODate, parseISODate, toISODate } from '@/lib/dates';
 import { formatMoney, memberName } from '@/lib/format';
-import { PAYMENT_METHODS } from '@/lib/payments';
 
 const TITLES: Record<PlanMode, string> = {
   renew: 'Renew Membership',
@@ -152,7 +152,6 @@ function NewPlanForm({ mode, member, plans }: { mode: NewPlanMode; member: Membe
       {formError ? <ErrorBanner message={formError} /> : null}
 
       <Card
-        icon="plans"
         title={memberName(member)}
         subtitle={
           mode === 'renew'
@@ -161,11 +160,7 @@ function NewPlanForm({ mode, member, plans }: { mode: NewPlanMode; member: Membe
               ? 'Add their next plan (same or different). It starts after the current plan ends; until then only the current plan counts for dues.'
               : 'Replaces the current plan with a new one. The current plan is closed, and its payments and dues no longer count.'
         }>
-        <View style={styles.plans}>
-          {plans.map((item) => (
-            <PlanOption key={item.id} plan={item} selected={item.id === planId} onPress={() => setPlanId(item.id)} />
-          ))}
-        </View>
+        <PlanOptions plans={plans} value={planId} onChange={setPlanId} />
         {errors.membership_plan_id ? <Text style={[styles.error, { color: theme.danger }]}>{errors.membership_plan_id}</Text> : null}
 
         <DateField
@@ -198,7 +193,6 @@ function NewPlanForm({ mode, member, plans }: { mode: NewPlanMode; member: Membe
       </Card>
 
       <Card
-        icon="money"
         title="Payment"
         subtitle={recordPayment ? undefined : 'Turn on to record money received now.'}
         action={
@@ -206,6 +200,7 @@ function NewPlanForm({ mode, member, plans }: { mode: NewPlanMode; member: Membe
             value={recordPayment}
             onValueChange={setRecordPayment}
             trackColor={{ true: theme.primary, false: theme.border }}
+              thumbColor={theme.onPrimary}
             accessibilityLabel="Record a payment"
           />
         }>
@@ -220,17 +215,10 @@ function NewPlanForm({ mode, member, plans }: { mode: NewPlanMode; member: Membe
               onChangeText={(text) => setPayment((current) => ({ ...current, amount: text.replace(/[^\d.]/g, '') }))}
               error={errors.payment_amount}
             />
-            <View style={styles.row}>
-              {PAYMENT_METHODS.map((method) => (
-                <View key={method.value} style={styles.flex}>
-                  <Chip
-                    label={method.label}
-                    selected={payment.method === method.value}
-                    onPress={() => setPayment((current) => ({ ...current, method: method.value }))}
-                  />
-                </View>
-              ))}
-            </View>
+            <PaymentMethodPicker
+                value={payment.method}
+                onChange={(method) => setPayment((current) => ({ ...current, method }))}
+              />
             <TextField
               label="Transaction Reference"
               icon="document"
@@ -299,7 +287,6 @@ function AdjustForm({ mode, member, next }: { mode: 'extend' | 'edit'; member: M
     <Screen>
       {formError ? <ErrorBanner message={formError} /> : null}
       <Card
-        icon={mode === 'extend' ? 'pause' : 'edit'}
         title={`${memberName(member)} · ${membership.membership_plan.name}`}
         subtitle={`${formatDate(membership.start_date)} – ${formatDate(membership.end_date)}`}>
         {mode === 'extend' ? (
@@ -361,9 +348,6 @@ function AdjustForm({ mode, member, next }: { mode: 'extend' | 'edit'; member: M
 }
 
 const styles = StyleSheet.create({
-  plans: {
-    gap: Spacing.two,
-  },
   error: {
     fontSize: 13,
   },

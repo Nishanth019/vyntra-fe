@@ -43,11 +43,11 @@ export default function OrganisationSettingsScreen() {
         router.back();
       }}
       footer={
-        <Card icon="warning" title="Danger Zone" subtitle="Remove this organisation from Vyntra." tone="danger">
+        <Card title="Danger Zone" subtitle="Removes this organisation from your list. Its records are kept." tone="danger">
           {deleteError ? <ErrorBanner message={deleteError} /> : null}
           <Button
             title="Delete Organisation"
-            icon="block"
+            icon="trash"
             variant="danger"
             loading={deleting}
             onPress={deleteOrganisation}

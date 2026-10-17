@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Line, Polyline } from 'react-native-svg';
 
+import { Icon, type IconName } from '@/components/ui/icon';
+import { IconBadge, type Tone } from '@/components/ui/icon-badge';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -187,29 +189,53 @@ function Legend({ series }: { series: Series[] }) {
   );
 }
 
-/** Horizontal bars showing each row's share of the largest, e.g. collections per payment method. */
-export function ShareBars({ rows, color }: { rows: { label: string; value: number; detail: string }[]; color: string }) {
+type ShareRow = { label: string; value: number; detail: string; icon: IconName; tone: Tone };
+
+/** Each row's share of the total as a bar, e.g. collections per payment method. */
+export function ShareBars({ rows, color }: { rows: ShareRow[]; color: string }) {
   const theme = useTheme();
-  const max = Math.max(...rows.map((row) => row.value), 0);
+  const total = rows.reduce((sum, row) => sum + row.value, 0);
 
   if (rows.length === 0) {
     return <Text style={[styles.empty, { color: theme.textSecondary }]}>No data for this period</Text>;
   }
   return (
     <View style={styles.shares}>
-      {rows.map((row) => (
-        <View key={row.label} style={styles.share}>
-          <View style={styles.shareHeader}>
-            <Text style={[styles.shareLabel, { color: theme.text }]} numberOfLines={1}>
-              {row.label}
-            </Text>
-            <Text style={[styles.shareDetail, { color: theme.textSecondary }]}>{row.detail}</Text>
+      {rows.map((row) => {
+        const share = total ? Math.round((row.value / total) * 100) : 0;
+        return (
+          <View key={row.label} style={styles.share}>
+            <IconBadge name={row.icon} tone={row.tone} size={44} />
+            <View style={styles.shareBody}>
+              <View style={styles.shareHeader}>
+                <Text style={[styles.shareLabel, { color: theme.text }]} numberOfLines={1}>
+                  {row.label}
+                </Text>
+                <Text style={[styles.shareDetail, { color: theme.text }]}>{row.detail}</Text>
+                <Text style={[styles.sharePercent, { color: theme.textSecondary }]}>{share}%</Text>
+              </View>
+              <View style={[styles.shareTrack, { backgroundColor: theme.background }]}>
+                <View style={[styles.shareFill, { width: `${share}%`, backgroundColor: color }]} />
+              </View>
+            </View>
           </View>
-          <View style={[styles.shareTrack, { backgroundColor: theme.border }]}>
-            <View style={[styles.shareFill, { width: `${max ? (row.value / max) * 100 : 0}%`, backgroundColor: color }]} />
-          </View>
-        </View>
-      ))}
+        );
+      })}
+    </View>
+  );
+}
+
+/** Up / down change against the previous period, e.g. "+12%" in green. */
+export function Change({ value, lowerIsBetter = false }: { value: number | null; lowerIsBetter?: boolean }) {
+  const theme = useTheme();
+  if (value === 0) return <Text style={[styles.change, { color: theme.textSecondary }]}>No change</Text>;
+  const up = value === null || value > 0;
+  const color = up !== lowerIsBetter ? theme.success : theme.danger;
+
+  return (
+    <View style={styles.changeRow}>
+      <Text style={[styles.change, { color }]}>{value === null ? 'New' : `${up ? '+' : '−'}${Math.abs(value)}%`}</Text>
+      <Icon name={up ? 'trendUp' : 'trendDown'} color={color} size={14} />
     </View>
   );
 }
@@ -246,8 +272,8 @@ const styles = StyleSheet.create({
   bar: {
     // Stack segments bottom-up.
     flexDirection: 'column-reverse',
-    borderTopLeftRadius: 4,
-    borderTopRightRadius: 4,
+    borderTopLeftRadius: 6,
+    borderTopRightRadius: 6,
     overflow: 'hidden',
   },
   labels: {
@@ -297,20 +323,41 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
   },
   share: {
-    gap: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+  },
+  shareBody: {
+    flex: 1,
+    gap: Spacing.two,
   },
   shareHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
     gap: Spacing.two,
   },
   shareLabel: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
   },
   shareDetail: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  sharePercent: {
+    minWidth: 40,
     fontSize: 13,
+    textAlign: 'right',
+  },
+  changeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  change: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   shareTrack: {
     height: 8,

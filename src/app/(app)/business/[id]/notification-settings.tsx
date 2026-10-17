@@ -60,6 +60,7 @@ export default function NotificationSettingsScreen() {
               value={settings[option.key]}
               onValueChange={(value) => toggle(option.key, value)}
               trackColor={{ true: theme.primary, false: theme.border }}
+              thumbColor={theme.onPrimary}
               accessibilityLabel={option.title}
             />
           </View>
@@ -95,7 +96,7 @@ function TestPush() {
   }
 
   return (
-    <Card icon="bell" title="Test on this phone" subtitle="Check that notifications pop up on this phone.">
+    <Card title="Test on this phone" subtitle="Check that notifications pop up on this phone.">
       <Button title="Send Test Notification" icon="bell" variant="secondary" loading={sending} onPress={send} />
       {result ? (
         <Text style={[styles.detail, { color: result.ok ? theme.success : theme.danger }]}>{result.text}</Text>

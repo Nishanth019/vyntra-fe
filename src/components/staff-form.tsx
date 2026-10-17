@@ -84,7 +84,7 @@ export function StaffForm({ staff, onSubmit }: StaffFormProps) {
     <Screen>
       {formError ? <ErrorBanner message={formError} /> : null}
 
-      <Card icon="staff" title="Staff Details">
+      <Card title="Staff Details">
         <TextField
           label="Employee ID"
           required
@@ -120,7 +120,7 @@ export function StaffForm({ staff, onSubmit }: StaffFormProps) {
         />
       </Card>
 
-      <Card icon="badge" title="Role" subtitle="Pick one or type your own.">
+      <Card title="Role" subtitle="Pick one or type your own.">
         <View style={styles.roles}>
           {ROLES.map((role) => (
             <View key={role} style={styles.role}>
@@ -140,7 +140,12 @@ export function StaffForm({ staff, onSubmit }: StaffFormProps) {
               <Text style={[styles.label, { color: theme.text }]}>Active</Text>
               <Text style={[styles.hint, { color: theme.textSecondary }]}>Turn off when they leave.</Text>
             </View>
-            <Switch value={isActive} onValueChange={setIsActive} trackColor={{ true: theme.primary, false: theme.border }} />
+            <Switch
+              value={isActive}
+              onValueChange={setIsActive}
+              trackColor={{ true: theme.primary, false: theme.border }}
+              thumbColor={theme.onPrimary}
+            />
           </View>
         ) : null}
       </Card>

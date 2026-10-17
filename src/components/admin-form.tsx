@@ -91,7 +91,6 @@ export function AdminForm(props: AdminFormProps) {
     <Screen>
       {!editing ? (
         <Card
-          icon="admin"
           title="Add an admin"
           subtitle="They'll log in with this email or mobile number and password, and can manage this business."
           tone="accent"
@@ -100,7 +99,7 @@ export function AdminForm(props: AdminFormProps) {
 
       {formError ? <ErrorBanner message={formError} /> : null}
 
-      <Card icon="person" title="User Details">
+      <Card title="User Details">
         <TextField label="Name" required icon="person" placeholder="Full name" autoCapitalize="words" {...field('full_name')} />
         <TextField
           label="Mobile No."
@@ -142,7 +141,12 @@ export function AdminForm(props: AdminFormProps) {
                 Turn off to block them from this business.
               </Text>
             </View>
-            <Switch value={hasAccess} onValueChange={setHasAccess} trackColor={{ true: theme.primary, false: theme.border }} />
+            <Switch
+              value={hasAccess}
+              onValueChange={setHasAccess}
+              trackColor={{ true: theme.primary, false: theme.border }}
+              thumbColor={theme.onPrimary}
+            />
           </View>
         ) : null}
       </Card>

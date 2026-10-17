@@ -1,10 +1,10 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Icon } from '@/components/ui/icon';
-import { Radius } from '@/constants/theme';
+import { Radius, shadow } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-/** Header bell with an unread count badge. */
+/** Round bell button with an unread count badge. */
 export function NotificationBell({ unread, onPress }: { unread: number; onPress: () => void }) {
   const theme = useTheme();
 
@@ -12,12 +12,17 @@ export function NotificationBell({ unread, onPress }: { unread: number; onPress:
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={unread ? `Notifications, ${unread} unread` : 'Notifications'}
-      hitSlop={10}
+      hitSlop={8}
       onPress={onPress}
-      style={({ pressed }) => [styles.button, pressed && styles.pressed]}>
-      <Icon name="bell" color={theme.onPrimary} size={24} />
+      style={({ pressed }) => [
+        styles.button,
+        { backgroundColor: theme.surface },
+        shadow(theme.shadow),
+        pressed && styles.pressed,
+      ]}>
+      <Icon name="bell" color={theme.text} size={22} />
       {unread > 0 ? (
-        <View style={[styles.badge, { backgroundColor: theme.danger, borderColor: theme.primary }]}>
+        <View style={[styles.badge, { backgroundColor: theme.danger, borderColor: theme.surface }]}>
           <Text style={[styles.badgeText, { color: theme.onPrimary }]}>{unread > 99 ? '99+' : unread}</Text>
         </View>
       ) : null}
@@ -27,20 +32,24 @@ export function NotificationBell({ unread, onPress }: { unread: number; onPress:
 
 const styles = StyleSheet.create({
   button: {
-    padding: 4,
+    width: 44,
+    height: 44,
+    borderRadius: Radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   pressed: {
     opacity: 0.6,
   },
   badge: {
     position: 'absolute',
-    top: -2,
-    right: -4,
-    minWidth: 18,
-    height: 18,
+    top: -3,
+    right: -3,
+    minWidth: 20,
+    height: 20,
     paddingHorizontal: 4,
     borderRadius: Radius.full,
-    borderWidth: 1.5,
+    borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },

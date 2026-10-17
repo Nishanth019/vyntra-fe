@@ -1,4 +1,4 @@
-import { api, type MemberQuery } from '@/lib/api';
+import type { MemberQuery } from '@/lib/api';
 import { addDays, toISODate } from '@/lib/dates';
 
 export type MemberFilterKey =
@@ -28,14 +28,14 @@ function endingBetween(today: Date, from?: number, to?: number) {
 }
 
 export const MEMBER_FILTERS: MemberFilter[] = [
-  { key: 'all', label: 'All Members', query: () => ({}) },
-  { key: 'live', label: 'Active Members', query: () => ({ status: 'live' }) },
-  { key: 'expired', label: 'Expired Members', query: () => ({ status: 'expired' }) },
-  { key: 'expiring3', label: 'Expiring (0–3 Days)', query: (today) => endingBetween(today, 0, 3) },
-  { key: 'expiring7', label: 'Expiring (4–7 Days)', query: (today) => endingBetween(today, 4, 7) },
-  { key: 'expiring15', label: 'Expiring (8–15 Days)', query: (today) => endingBetween(today, 8, 15) },
+  { key: 'all', label: 'All', query: () => ({}) },
+  { key: 'live', label: 'Active', query: () => ({ status: 'live' }) },
+  { key: 'expired', label: 'Expired', query: () => ({ status: 'expired' }) },
+  { key: 'expiring3', label: 'Ending in 0–3 days', query: (today) => endingBetween(today, 0, 3) },
+  { key: 'expiring7', label: 'Ending in 4–7 days', query: (today) => endingBetween(today, 4, 7) },
+  { key: 'expiring15', label: 'Ending in 8–15 days', query: (today) => endingBetween(today, 8, 15) },
   { key: 'dues', label: 'Dues Pending', query: () => ({ has_dues: true }) },
-  { key: 'inactive', label: 'Inactive Members', query: () => ({ is_active: false }) },
+  { key: 'inactive', label: 'Inactive', query: () => ({ is_active: false }) },
 ];
 
 export function isMemberFilterKey(value: unknown): value is MemberFilterKey {
@@ -45,8 +45,3 @@ export function isMemberFilterKey(value: unknown): value is MemberFilterKey {
 /** Shown on the Expired and Inactive lists. */
 export const AUTO_INACTIVE_NOTE =
   'Expired members move to Inactive automatically 1 week after their plan ends. Renew or reactivate them anytime when they come back.';
-
-/** Member count for every filter (one request). */
-export async function fetchMemberCounts(business_account_id: number): Promise<Record<MemberFilterKey, number>> {
-  return (await api.dashboard(business_account_id)).members;
-}

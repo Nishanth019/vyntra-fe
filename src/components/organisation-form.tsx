@@ -1,12 +1,15 @@
 import { useState, type ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ErrorBanner } from '@/components/ui/error-banner';
+import { Gradient } from '@/components/ui/gradient';
+import { Icon } from '@/components/ui/icon';
 import { Screen } from '@/components/ui/screen';
 import { TextField } from '@/components/ui/text-field';
-import { Spacing } from '@/constants/theme';
+import { Radius, shadow, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import { ApiError, type BusinessAccount, type BusinessAccountInput } from '@/lib/api';
 
 const FIELDS = [
@@ -28,7 +31,10 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const URL_PATTERN = /^https?:\/\/\S+\.\S+$/i;
 
 function toValues(account?: BusinessAccount): Values {
-  return Object.fromEntries(FIELDS.map((field) => [field, account?.[field] ?? ''])) as Values;
+  const values = Object.fromEntries(FIELDS.map((field) => [field, account?.[field] ?? ''])) as Values;
+  // New organisations are in India for now.
+  if (!account) values.country = 'India';
+  return values;
 }
 
 type OrganisationFormProps = {
@@ -43,6 +49,7 @@ type OrganisationFormProps = {
 
 /** Create / edit form for a business account (organisation). */
 export function OrganisationForm({ account, submitLabel, onSubmit, footer }: OrganisationFormProps) {
+  const theme = useTheme();
   const initial = toValues(account);
   const [values, setValues] = useState(initial);
   const [errors, setErrors] = useState<Partial<Record<Field, string>>>({});
@@ -94,35 +101,39 @@ export function OrganisationForm({ account, submitLabel, onSubmit, footer }: Org
 
   return (
     <Screen>
-      {!account ? (
-        <Card
-          icon="store"
-          title="Set up your organisation"
-          subtitle="These details appear on your dashboard and help members reach you."
-          tone="accent"
-        />
-      ) : null}
+      <Card>
+        <View style={styles.identity}>
+          <View style={[styles.logo, shadow(theme.primary, 2)]}>
+            <Gradient from={theme.primary} to={theme.primaryEnd} />
+            <Icon name="dumbbell" color={theme.onPrimary} size={34} />
+          </View>
+          <View style={styles.flex}>
+            <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
+              {values.name.trim() || 'Your organisation'}
+            </Text>
+            <Text style={[styles.tagline, { color: theme.textSecondary }]} numberOfLines={2}>
+              {account
+                ? [account.business_type.name, values.city.trim()].filter(Boolean).join(' · ')
+                : 'These details appear on your dashboard and help members reach you.'}
+            </Text>
+          </View>
+        </View>
+      </Card>
 
       {formError ? <ErrorBanner message={formError} /> : null}
 
-      <Card>
+      <Card title="Basic">
         <TextField
           label="Organisation Name"
           required
-          icon="store"
           placeholder="Your organisation name"
           autoCapitalize="words"
           {...field('name')}
         />
       </Card>
 
-      <Card icon="map" title="Location" subtitle="Where your members can find you." tone="primary">
-        <TextField
-          label="Home / Area / Street"
-          icon="location"
-          placeholder="Home / Area / Street"
-          {...field('address')}
-        />
+      <Card title="Location" subtitle="Where your members can find you.">
+        <TextField label="Home / Area / Street" placeholder="e.g. 100 Feet Road, Koramangala" {...field('address')} />
         <View style={styles.row}>
           <View style={styles.flex}>
             <TextField label="City" placeholder="City" autoCapitalize="words" {...field('city')} />
@@ -131,14 +142,14 @@ export function OrganisationForm({ account, submitLabel, onSubmit, footer }: Org
             <TextField label="State" placeholder="State" autoCapitalize="words" {...field('state')} />
           </View>
         </View>
-        <TextField label="Country" icon="globe" placeholder="Country" autoCapitalize="words" {...field('country')} />
+        <TextField label="Country" placeholder="Country" autoCapitalize="words" {...field('country')} />
       </Card>
 
-      <Card icon="phone" title="Contact" subtitle="How members and staff reach the organisation.">
+      <Card title="Contact" subtitle="How members and staff reach the organisation.">
         <TextField
           label="Mobile No."
           icon="phone"
-          placeholder="Organisation contact number"
+          placeholder="Contact number"
           keyboardType="phone-pad"
           maxLength={20}
           {...field('contact_no')}
@@ -153,7 +164,7 @@ export function OrganisationForm({ account, submitLabel, onSubmit, footer }: Org
         />
       </Card>
 
-      <Card icon="settings" title="Optional details" subtitle="Used for invoices and your business profile.">
+      <Card title="Optional details" subtitle="Used for invoices and your business profile.">
         <TextField
           label="Website"
           icon="globe"
@@ -164,7 +175,6 @@ export function OrganisationForm({ account, submitLabel, onSubmit, footer }: Org
         />
         <TextField
           label="Terms & Conditions"
-          icon="document"
           placeholder="Shown on invoices (optional)"
           multiline
           {...field('terms_and_conditions')}
@@ -178,6 +188,27 @@ export function OrganisationForm({ account, submitLabel, onSubmit, footer }: Org
 }
 
 const styles = StyleSheet.create({
+  identity: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+  },
+  logo: {
+    width: 72,
+    height: 72,
+    borderRadius: Radius.lg,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  name: {
+    fontSize: 22,
+    fontWeight: '800',
+  },
+  tagline: {
+    fontSize: 14,
+    marginTop: 2,
+  },
   row: {
     flexDirection: 'row',
     gap: Spacing.three,

@@ -1,16 +1,15 @@
-import { router, Tabs, type Href } from 'expo-router';
-import { useCallback } from 'react';
+import { router, type Href } from 'expo-router';
+import { use, useCallback, useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { NotificationBell } from '@/components/notification-bell';
-import { Button } from '@/components/ui/button';
+import { TabHeader, TabsContext } from '@/components/tab-header';
 import { ErrorBanner } from '@/components/ui/error-banner';
-import { HeaderButton } from '@/components/ui/header-button';
-import type { IconName } from '@/components/ui/icon';
+import { Gradient } from '@/components/ui/gradient';
+import { Icon, type IconName } from '@/components/ui/icon';
 import { IconBadge, type Tone } from '@/components/ui/icon-badge';
 import { Screen } from '@/components/ui/screen';
 import { LoadingState } from '@/components/ui/states';
-import { Radius, Spacing } from '@/constants/theme';
+import { Radius, shadow, Spacing } from '@/constants/theme';
 import { useResource } from '@/hooks/use-resource';
 import { useTheme } from '@/hooks/use-theme';
 import { api } from '@/lib/api';
@@ -24,12 +23,12 @@ type Tile = {
   value: number | string;
   icon: IconName;
   tone: Tone;
-  href?: Href;
+  href: Href;
 };
 
-function chunk<T>(items: T[], size: number): T[][] {
+function pairs<T>(items: T[]): T[][] {
   const rows: T[][] = [];
-  for (let i = 0; i < items.length; i += size) rows.push(items.slice(i, i + size));
+  for (let i = 0; i < items.length; i += 2) rows.push(items.slice(i, i + 2));
   return rows;
 }
 
@@ -42,101 +41,101 @@ export default function DashboardScreen() {
   const theme = useTheme();
   const { admin } = useSession();
   const { account } = useBusiness();
+  const { setUnread } = use(TabsContext);
 
   const fetchStats = useCallback(() => api.dashboard(account.id), [account.id]);
   const { data: stats, error, refreshing, refresh, retry } = useResource(fetchStats);
+  useEffect(() => {
+    if (stats) setUnread(stats.unread_notifications);
+  }, [stats, setUnread]);
 
   const params = { id: account.id };
   const membersHref = (filter: MemberFilterKey): Href => ({
     pathname: '/business/[id]/members',
     params: { ...params, filter },
   });
-
-  const header = (
-    <Tabs.Screen
-      options={{
-        headerRight: () => (
-          <View style={styles.headerActions}>
-            <NotificationBell
-              unread={stats?.unread_notifications ?? 0}
-              onPress={() => router.push({ pathname: '/business/[id]/notifications', params })}
-            />
-            <HeaderButton
-              icon="personAdd"
-              label="Add member"
-              onPress={() => router.push({ pathname: '/business/[id]/members/new', params })}
-            />
-          </View>
-        ),
-      }}
-    />
-  );
+  const insightsHref: Href = { pathname: '/business/[id]/insights', params };
 
   if (!stats) {
     return (
       <>
-        {header}
+        <TabHeader brand />
         <LoadingState error={error} onRetry={retry} />
       </>
     );
   }
 
   const { members, collections } = stats;
-  const overviewTiles: Tile[] = [
-    { label: 'Active Members', value: members.live, icon: 'people', tone: 'success', href: membersHref('live') },
-    { label: 'Total Members', value: members.all, icon: 'people', tone: 'primary', href: membersHref('all') },
-    { label: 'Expired Members', value: members.expired, icon: 'personOff', tone: 'danger', href: membersHref('expired') },
-    { label: 'Expiring (0–3 Days)', value: members.expiring3, icon: 'hourglass', tone: 'warning', href: membersHref('expiring3') },
-    { label: 'Expiring (4–7 Days)', value: members.expiring7, icon: 'hourglass', tone: 'accent', href: membersHref('expiring7') },
-    { label: 'Expiring (8–15 Days)', value: members.expiring15, icon: 'hourglass', tone: 'primary', href: membersHref('expiring15') },
+  const overview: Tile[] = [
+    { label: 'Active Members', value: members.live, icon: 'userGroup', tone: 'success', href: membersHref('live') },
+    { label: 'Total Members', value: members.all, icon: 'person', tone: 'primary', href: membersHref('all') },
+    { label: 'Expired', value: members.expired, icon: 'clock', tone: 'danger', href: membersHref('expired') },
     {
       label: 'Checked In Today',
       value: stats.checked_in_today,
-      icon: 'checkIn',
+      icon: 'checkCircle',
       tone: 'success',
       href: { pathname: '/business/[id]/attendance', params },
     },
-    { label: 'Inactive Members', value: members.inactive, icon: 'personOff', tone: 'neutral', href: membersHref('inactive') },
+    { label: 'Inactive', value: members.inactive, icon: 'close', tone: 'accent', href: membersHref('inactive') },
     {
       label: 'Membership Plans',
       value: stats.plans,
-      icon: 'plans',
+      icon: 'document',
       tone: 'accent',
       href: { pathname: '/business/[id]/plans', params },
     },
   ];
-  const collectionTiles: Tile[] = [
-    { label: "Today's Collection", value: formatMoney(collections.today_collection), icon: 'money', tone: 'success' },
-    { label: 'This Month', value: formatMoney(collections.month_collection), icon: 'report', tone: 'primary' },
-    { label: 'Outstanding Dues', value: formatMoney(collections.outstanding_dues), icon: 'money', tone: 'danger' },
-    { label: 'Dues Pending', value: members.dues, icon: 'warning', tone: 'warning', href: membersHref('dues') },
+  const money: Tile[] = [
+    { label: 'Today', value: formatMoney(collections.today_collection), icon: 'rupee', tone: 'success', href: insightsHref },
+    { label: 'This Month', value: formatMoney(collections.month_collection), icon: 'report', tone: 'primary', href: insightsHref },
+    {
+      label: 'Outstanding Dues',
+      value: formatMoney(collections.outstanding_dues),
+      icon: 'card',
+      tone: 'danger',
+      href: membersHref('dues'),
+    },
+    { label: 'Dues Pending', value: members.dues, icon: 'pieChart', tone: 'accent', href: membersHref('dues') },
+  ];
+  const expiring: { label: string; value: number; filter: MemberFilterKey }[] = [
+    { label: '0 – 3 days', value: members.expiring3, filter: 'expiring3' },
+    { label: '4 – 7 days', value: members.expiring7, filter: 'expiring7' },
+    { label: '8 – 15 days', value: members.expiring15, filter: 'expiring15' },
   ];
 
   return (
     <>
-      {header}
-
+      <TabHeader brand />
       <Screen onRefresh={refresh} refreshing={refreshing} maxWidth={720}>
-        <View style={[styles.hero, { backgroundColor: theme.primary }]}>
-          <Text style={[styles.heroGreeting, { color: theme.onPrimary }]}>
+        <View>
+          <Text style={[styles.greeting, { color: theme.text }]}>
             {greeting()}, {admin?.full_name.split(' ')[0]}
           </Text>
-          <Text style={[styles.heroDate, { color: theme.onPrimary }]}>
-            {new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}
+          <Text style={[styles.date, { color: theme.textSecondary }]}>
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          </Text>
+        </View>
+
+        <View style={[styles.hero, shadow(theme.primary, 3)]}>
+          <Gradient from={theme.primary} to={theme.primaryEnd} />
+          <View style={styles.heroArt}>
+            <Icon name="dumbbell" color="rgba(255,255,255,0.16)" size={150} />
+          </View>
+          <Text style={[styles.heroTitle, { color: theme.onPrimary }]}>Build a stronger community</Text>
+          <Text style={[styles.heroText, { color: theme.onPrimary }]}>
+            Add members, track attendance and grow together.
           </Text>
           <View style={styles.heroActions}>
-            <Button
+            <HeroButton
               title="Add Member"
               icon="personAdd"
-              variant="secondary"
-              style={styles.heroButton}
+              solid
               onPress={() => router.push({ pathname: '/business/[id]/members/new', params })}
             />
-            <Button
+            <HeroButton
               title="Attendance"
-              icon="checkIn"
-              variant="secondary"
-              style={styles.heroButton}
+              icon="calendar"
               onPress={() => router.push({ pathname: '/business/[id]/attendance/mark', params })}
             />
           </View>
@@ -144,129 +143,250 @@ export default function DashboardScreen() {
 
         {error ? <ErrorBanner message={error} /> : null}
 
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Overview</Text>
-        <View style={styles.grid}>
-          {chunk(overviewTiles, 3).map((row, i) => (
-            <View key={i} style={styles.row}>
-              {row.map((tile) => (
-                <StatTile key={tile.label} tile={tile} />
-              ))}
-            </View>
+        <SectionTitle title="Overview" href={membersHref('all')} />
+        <TileGrid tiles={overview} />
+
+        <SectionTitle title="Expiring soon" href={membersHref('expiring3')} />
+        <View style={[styles.expiring, { backgroundColor: theme.warningSoft }]}>
+          {expiring.map((item, i) => (
+            <Pressable
+              key={item.filter}
+              accessibilityRole="button"
+              accessibilityLabel={`Expiring in ${item.label}: ${item.value}`}
+              onPress={() => router.navigate(membersHref(item.filter))}
+              style={({ pressed }) => [
+                styles.expiringItem,
+                i > 0 && [styles.expiringDivider, { borderColor: theme.border }],
+                pressed && styles.pressed,
+              ]}>
+              <IconBadge name="calendar" tone="warning" size={40} />
+              <View>
+                <Text style={[styles.expiringLabel, { color: theme.textSecondary }]} numberOfLines={1}>
+                  {item.label}
+                </Text>
+                <Text style={[styles.expiringValue, { color: theme.text }]}>{item.value}</Text>
+              </View>
+            </Pressable>
           ))}
         </View>
 
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Collections</Text>
-        <View style={styles.grid}>
-          {chunk(collectionTiles, 2).map((row, i) => (
-            <View key={i} style={styles.row}>
-              {row.map((tile) => (
-                <StatTile key={tile.label} tile={tile} />
-              ))}
-            </View>
-          ))}
-        </View>
+        <SectionTitle title="Collections" href={insightsHref} />
+        <TileGrid tiles={money} />
       </Screen>
     </>
   );
 }
 
-function StatTile({ tile }: { tile: Tile }) {
+function HeroButton({ title, icon, solid = false, onPress }: { title: string; icon: IconName; solid?: boolean; onPress: () => void }) {
   const theme = useTheme();
-  const { href } = tile;
+  const color = solid ? theme.primary : theme.onPrimary;
 
   return (
     <Pressable
-      accessibilityRole={href ? 'button' : undefined}
-      accessibilityLabel={`${tile.label}: ${tile.value}`}
-      disabled={!href}
-      onPress={() => href && router.navigate(href)}
+      accessibilityRole="button"
+      onPress={onPress}
       style={({ pressed }) => [
-        styles.tile,
-        { backgroundColor: theme.surface, borderColor: theme.border },
+        styles.heroButton,
+        { backgroundColor: solid ? theme.onPrimary : 'rgba(255,255,255,0.18)' },
         pressed && styles.pressed,
       ]}>
-      <View style={styles.tileTop}>
-        <IconBadge name={tile.icon} tone={tile.tone} size={38} />
-        <Text style={[styles.tileValue, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit>
-          {tile.value}
-        </Text>
-      </View>
-      <View style={[styles.tileDivider, { backgroundColor: theme.border }]} />
-      <Text style={[styles.tileLabel, { color: theme.text }]} numberOfLines={2}>
-        {tile.label}
+      <Icon name={icon} color={color} size={20} />
+      <Text style={[styles.heroButtonText, { color }]} numberOfLines={1} adjustsFontSizeToFit>
+        {title}
       </Text>
     </Pressable>
   );
 }
 
+function SectionTitle({ title, href }: { title: string; href: Href }) {
+  const theme = useTheme();
+
+  return (
+    <View style={styles.sectionRow}>
+      <Text style={[styles.sectionTitle, { color: theme.text }]}>{title}</Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`See all ${title}`}
+        hitSlop={8}
+        onPress={() => router.navigate(href)}
+        style={({ pressed }) => [styles.seeAll, pressed && styles.pressed]}>
+        <Text style={[styles.seeAllText, { color: theme.primary }]}>See all</Text>
+        <Icon name="chevronRight" color={theme.primary} size={16} />
+      </Pressable>
+    </View>
+  );
+}
+
+function TileGrid({ tiles }: { tiles: Tile[] }) {
+  return (
+    <View style={styles.grid}>
+      {pairs(tiles).map((row, i) => (
+        <View key={i} style={styles.row}>
+          {row.map((tile) => (
+            <StatTile key={tile.label} tile={tile} />
+          ))}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function StatTile({ tile }: { tile: Tile }) {
+  const theme = useTheme();
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${tile.label}: ${tile.value}`}
+      onPress={() => router.navigate(tile.href)}
+      style={({ pressed }) => [
+        styles.tile,
+        { backgroundColor: theme.surface, borderColor: theme.border },
+        shadow(theme.shadow),
+        pressed && styles.pressed,
+      ]}>
+      <IconBadge name={tile.icon} tone={tile.tone} size={46} />
+      <View style={styles.flex}>
+        <Text style={[styles.tileLabel, { color: theme.textSecondary }]} numberOfLines={1}>
+          {tile.label}
+        </Text>
+        <Text style={[styles.tileValue, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
+          {tile.value}
+        </Text>
+      </View>
+      <Icon name="chevronRight" color={theme.textSecondary} size={16} />
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
-  headerActions: {
-    flexDirection: 'row',
-    gap: Spacing.three,
+  flex: {
+    flex: 1,
+  },
+  greeting: {
+    fontSize: 26,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  date: {
+    fontSize: 15,
+    marginTop: 2,
   },
   hero: {
-    borderRadius: Radius.lg + 4,
+    overflow: 'hidden',
+    borderRadius: Radius.xl,
     padding: Spacing.four,
-    gap: Spacing.one,
+    gap: Spacing.two,
   },
-  heroGreeting: {
-    fontSize: 22,
-    fontWeight: '700',
+  heroArt: {
+    position: 'absolute',
+    pointerEvents: 'none',
+    right: -24,
+    bottom: -30,
+    transform: [{ rotate: '-20deg' }],
   },
-  heroDate: {
+  heroTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    lineHeight: 30,
+    maxWidth: 260,
+  },
+  heroText: {
     fontSize: 15,
-    opacity: 0.85,
+    lineHeight: 21,
+    opacity: 0.9,
+    maxWidth: 260,
   },
   heroActions: {
     flexDirection: 'row',
-    gap: Spacing.three,
+    gap: Spacing.three - 4,
     marginTop: Spacing.three,
   },
   heroButton: {
     flex: 1,
-    height: 46,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.two,
+    height: 48,
     paddingHorizontal: Spacing.two,
+    borderRadius: Radius.md,
+  },
+  heroButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  sectionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: Spacing.two,
+    marginBottom: -Spacing.one,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: -Spacing.two,
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  seeAll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  seeAllText: {
+    fontSize: 15,
+    fontWeight: '600',
   },
   grid: {
-    gap: Spacing.three,
+    gap: Spacing.three - 4,
   },
   row: {
     flexDirection: 'row',
-    gap: Spacing.three,
+    gap: Spacing.three - 4,
   },
   tile: {
     flex: 1,
-    minHeight: 132,
-    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two + 2,
+    minHeight: 84,
+    paddingHorizontal: Spacing.three - 4,
+    paddingVertical: Spacing.three,
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: Radius.lg,
-    padding: Spacing.three - 4,
-    gap: Spacing.two,
   },
   pressed: {
     opacity: 0.7,
   },
-  tileTop: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: Spacing.one,
-  },
-  tileValue: {
-    flexShrink: 1,
-    fontSize: 24,
-    fontWeight: '700',
-  },
-  tileDivider: {
-    height: StyleSheet.hairlineWidth,
-  },
   tileLabel: {
     fontSize: 13,
     fontWeight: '500',
-    lineHeight: 18,
+  },
+  tileValue: {
+    fontSize: 24,
+    fontWeight: '800',
+    marginTop: 2,
+  },
+  expiring: {
+    flexDirection: 'row',
+    borderRadius: Radius.lg,
+    paddingVertical: Spacing.three,
+  },
+  expiringItem: {
+    flex: 1,
+    alignItems: 'center',
+    gap: Spacing.two,
+    paddingHorizontal: Spacing.two,
+  },
+  expiringDivider: {
+    borderLeftWidth: 1,
+  },
+  expiringLabel: {
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  expiringValue: {
+    fontSize: 22,
+    fontWeight: '800',
+    textAlign: 'center',
   },
 });

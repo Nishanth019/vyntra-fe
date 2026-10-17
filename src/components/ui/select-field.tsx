@@ -53,9 +53,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two + 2,
-    height: 52,
+    height: 54,
     paddingHorizontal: Spacing.three,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderRadius: Radius.md,
   },
   pressed: {

@@ -3,27 +3,20 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { MemberPicker } from '@/components/member-picker';
+import { PaymentMethodPicker } from '@/components/payment-method-picker';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Chip } from '@/components/ui/chip';
 import { DateField } from '@/components/ui/date-field';
 import { ErrorBanner } from '@/components/ui/error-banner';
 import { Screen } from '@/components/ui/screen';
 import { SelectField } from '@/components/ui/select-field';
 import { TextField } from '@/components/ui/text-field';
-import { Radius, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { api, ApiError, type Member } from '@/lib/api';
 import { useBusiness } from '@/lib/business';
 import { isValidISODate, toISODate } from '@/lib/dates';
-import { formatMoney, memberName } from '@/lib/format';
-
-const PAYMENT_METHODS = [
-  { value: 'CASH', label: 'Cash' },
-  { value: 'UPI', label: 'UPI' },
-  { value: 'CARD', label: 'Card' },
-  { value: 'BANK_TRANSFER', label: 'Bank' },
-];
+import { formatMoney, initials, memberName } from '@/lib/format';
 
 export default function RecordPaymentScreen() {
   const theme = useTheme();
@@ -90,12 +83,43 @@ export default function RecordPaymentScreen() {
   }
 
   const membership = member?.membership ?? null;
+  const balance = membership ? Number(membership.balance) : 0;
 
   return (
     <Screen>
       {formError ? <ErrorBanner message={formError} /> : null}
 
-      <Card icon="money" title="Payment details">
+      {member ? (
+        <Card>
+          <View style={styles.summary}>
+            <View style={[styles.avatar, { backgroundColor: theme.primarySoft }]}>
+              <Text style={[styles.avatarText, { color: theme.primary }]}>{initials(memberName(member))}</Text>
+            </View>
+            <View style={styles.flex}>
+              <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
+                {memberName(member)}
+              </Text>
+              <Text style={[styles.meta, { color: theme.textSecondary }]} numberOfLines={1}>
+                Plan: <Text style={{ color: theme.text }}>{membership?.membership_plan.name ?? '—'}</Text>
+              </Text>
+              <Text style={[styles.meta, { color: theme.textSecondary }]}>Member ID: #{member.member_code}</Text>
+            </View>
+            <View style={[styles.balance, { borderColor: theme.border }]}>
+              <Text style={[styles.meta, { color: theme.textSecondary }]}>Balance Due</Text>
+              <Text style={[styles.balanceValue, { color: balance > 0 ? theme.danger : theme.success }]}>
+                {formatMoney(balance)}
+              </Text>
+            </View>
+          </View>
+          <View style={[styles.badge, { backgroundColor: balance > 0 ? theme.dangerSoft : theme.successSoft }]}>
+            <Text style={[styles.badgeText, { color: balance > 0 ? theme.danger : theme.success }]}>
+              {balance > 0 ? `${formatMoney(balance)} pending on the current plan` : 'All payments up to date'}
+            </Text>
+          </View>
+        </Card>
+      ) : null}
+
+      <Card>
         <SelectField
           label="Member"
           icon="search"
@@ -104,26 +128,10 @@ export default function RecordPaymentScreen() {
           error={errors.member}
           onPress={() => setPickerOpen(true)}
         />
-
-        {membership ? (
-          <View style={[styles.balance, { backgroundColor: theme.background, borderColor: theme.border }]}>
-            <Text style={[styles.balanceLabel, { color: theme.textSecondary }]}>
-              {membership.membership_plan.name} · balance
-            </Text>
-            <Text
-              style={[
-                styles.balanceValue,
-                { color: Number(membership.balance) > 0 ? theme.danger : theme.success },
-              ]}>
-              {formatMoney(membership.balance)}
-            </Text>
-          </View>
-        ) : null}
-
         <TextField
           label="Amount Received (₹)"
-          icon="money"
-          placeholder="Amount"
+          icon="rupee"
+          placeholder="0"
           keyboardType="decimal-pad"
           value={amount}
           onChangeText={(text) => {
@@ -132,15 +140,7 @@ export default function RecordPaymentScreen() {
           }}
           error={errors.amount}
         />
-
-        <View style={styles.row}>
-          {PAYMENT_METHODS.map((item) => (
-            <View key={item.value} style={styles.flex}>
-              <Chip label={item.label} selected={method === item.value} onPress={() => setMethod(item.value)} />
-            </View>
-          ))}
-        </View>
-
+        <PaymentMethodPicker value={method} onChange={setMethod} />
         <DateField
           label="Payment Date"
           value={date}
@@ -152,17 +152,24 @@ export default function RecordPaymentScreen() {
           maximumDate={new Date()}
         />
         <TextField
-          label="Transaction Reference"
+          label="Transaction Reference (Optional)"
           icon="document"
-          placeholder="UPI / card reference (optional)"
+          placeholder="e.g. UPI ID, cheque no., transaction ID"
           autoCapitalize="characters"
           value={reference}
           onChangeText={setReference}
         />
-        <TextField label="Notes" placeholder="Optional" value={notes} onChangeText={setNotes} />
+        <TextField
+          label="Notes (Optional)"
+          placeholder="Add any notes here..."
+          multiline
+          maxLength={200}
+          value={notes}
+          onChangeText={setNotes}
+        />
       </Card>
 
-      <Button title="Record Payment" icon="check" loading={submitting} onPress={submit} />
+      <Button title="Record Payment" icon="checkCircle" loading={submitting} onPress={submit} />
 
       <MemberPicker visible={pickerOpen} activeOnly onClose={() => setPickerOpen(false)} onSelect={applyMember} />
     </Screen>
@@ -170,27 +177,49 @@ export default function RecordPaymentScreen() {
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    gap: Spacing.two,
-  },
   flex: {
     flex: 1,
   },
-  balance: {
+  summary: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: Spacing.three,
-    borderWidth: 1,
-    borderRadius: Radius.md,
+    gap: Spacing.three - 4,
   },
-  balanceLabel: {
+  avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  name: {
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  meta: {
     fontSize: 13,
-    fontWeight: '600',
+    marginTop: 2,
+  },
+  balance: {
+    alignItems: 'flex-end',
+    paddingLeft: Spacing.three - 4,
+    borderLeftWidth: StyleSheet.hairlineWidth,
   },
   balanceValue: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 24,
+    fontWeight: '800',
+  },
+  badge: {
+    alignItems: 'center',
+    paddingVertical: Spacing.two,
+    borderRadius: 999,
+  },
+  badgeText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
 });

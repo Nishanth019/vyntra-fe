@@ -24,11 +24,13 @@ export function membershipStatus(member: Member): { label: string; tone: Tone } 
   return { label: `Till ${formatDate(member.membership.end_date)}`, tone: 'success' };
 }
 
-export function StatusPill({ label, tone }: { label: string; tone: Tone }) {
+/** A soft colored pill; `dot` adds a status dot before the label. */
+export function StatusPill({ label, tone, dot = false }: { label: string; tone: Tone; dot?: boolean }) {
   const { color, background } = useToneColors(tone);
 
   return (
     <View style={[styles.pill, { backgroundColor: background }]}>
+      {dot ? <View style={[styles.dot, { backgroundColor: color }]} /> : null}
       <Text style={[styles.text, { color }]} numberOfLines={1}>
         {label}
       </Text>
@@ -38,12 +40,20 @@ export function StatusPill({ label, tone }: { label: string; tone: Tone }) {
 
 const styles = StyleSheet.create({
   pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     borderRadius: Radius.full,
-    paddingHorizontal: Spacing.two + 2,
-    paddingVertical: 3,
+    paddingHorizontal: Spacing.three - 4,
+    paddingVertical: 5,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   text: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '600',
   },
 });

@@ -80,7 +80,7 @@ export default function MarkAttendanceScreen() {
     <Screen>
       {formError ? <ErrorBanner message={formError} /> : null}
 
-      <Card icon="checkIn" title="Attendance details">
+      <Card title="Attendance details">
         <View style={styles.memberRow}>
           <View style={styles.flex}>
             <SelectField

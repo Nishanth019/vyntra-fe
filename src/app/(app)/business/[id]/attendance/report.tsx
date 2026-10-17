@@ -46,7 +46,7 @@ export default function AttendanceReportScreen() {
   const list = usePaginatedList(fetchPage);
 
   const filters = (
-    <Card icon="report" title="Report filters">
+    <Card title="Report filters">
       <SelectField
         label="Member name"
         icon="search"
@@ -148,8 +148,9 @@ const styles = StyleSheet.create({
   },
   list: {
     flexGrow: 1,
-    gap: Spacing.two + 2,
-    padding: Spacing.three,
+    gap: Spacing.three - 4,
+    paddingHorizontal: Spacing.three + 4,
+    paddingTop: Spacing.three,
     paddingBottom: Spacing.six,
   },
   header: {
