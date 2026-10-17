@@ -24,9 +24,12 @@ export function getRegisteredPushToken() {
   return registeredToken;
 }
 
-/** Asks for permission and registers this phone for the admin's push notifications. */
-async function registerForPush() {
-  if (!Device.isDevice || Platform.OS === 'web') return;
+/**
+ * Asks for permission and registers this phone for the admin's push notifications.
+ * Returns the token, or a reason it couldn't register.
+ */
+export async function registerForPush(): Promise<{ token?: string; problem?: string }> {
+  if (!Device.isDevice || Platform.OS === 'web') return { problem: 'Push notifications only work on a real phone.' };
 
   // Android 13+ only shows the permission prompt once a channel exists.
   if (Platform.OS === 'android') {
@@ -37,12 +40,13 @@ async function registerForPush() {
   }
   const existing = await Notifications.getPermissionsAsync();
   const granted = existing.granted || (await Notifications.requestPermissionsAsync()).granted;
-  if (!granted) return;
+  if (!granted) return { problem: 'Notifications are turned off for Vyntra. Allow them in your phone settings.' };
 
   const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
   const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId });
   await api.registerDevice(token, Platform.OS);
   registeredToken = token;
+  return { token };
 }
 
 /** Registers for push once logged in, and opens the right screen when a notification is tapped. */

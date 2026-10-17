@@ -1,6 +1,7 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { StyleSheet, Switch, Text, View } from 'react-native';
 
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Screen } from '@/components/ui/screen';
 import { LoadingState } from '@/components/ui/states';
@@ -9,6 +10,7 @@ import { useResource } from '@/hooks/use-resource';
 import { useTheme } from '@/hooks/use-theme';
 import { api, type NotificationSettings } from '@/lib/api';
 import { useBusiness } from '@/lib/business';
+import { registerForPush } from '@/lib/push';
 
 const OPTIONS: { key: keyof NotificationSettings; title: string; detail: string }[] = [
   {
@@ -63,7 +65,42 @@ export default function NotificationSettingsScreen() {
           </View>
         ))}
       </Card>
+      <TestPush />
     </Screen>
+  );
+}
+
+/** Registers this phone (if needed) and sends it a test push, showing why when it can't. */
+function TestPush() {
+  const theme = useTheme();
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
+
+  async function send() {
+    setSending(true);
+    setResult(null);
+    try {
+      const { problem } = await registerForPush();
+      if (problem) {
+        setResult({ ok: false, text: problem });
+        return;
+      }
+      await api.sendTestPush();
+      setResult({ ok: true, text: 'Sent! It should arrive within a few seconds.' });
+    } catch (e) {
+      setResult({ ok: false, text: `Couldn't set up push on this phone: ${e instanceof Error ? e.message : String(e)}` });
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <Card icon="bell" title="Test on this phone" subtitle="Check that notifications pop up on this phone.">
+      <Button title="Send Test Notification" icon="bell" variant="secondary" loading={sending} onPress={send} />
+      {result ? (
+        <Text style={[styles.detail, { color: result.ok ? theme.success : theme.danger }]}>{result.text}</Text>
+      ) : null}
+    </Card>
   );
 }
 

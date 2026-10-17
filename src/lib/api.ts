@@ -546,6 +546,7 @@ export const api = {
     }),
   registerDevice: (push_token: string, platform: string) =>
     request<null>('/devices/', { method: 'POST', body: { push_token, platform } }),
+  sendTestPush: () => request<{ devices: number }>('/devices/test/', { method: 'POST' }),
   unregisterDevice: (push_token: string) => request<null>('/devices/', { method: 'DELETE', body: { push_token } }),
 
   // Standalone payments — record recurring payments and list a member's payment history.
