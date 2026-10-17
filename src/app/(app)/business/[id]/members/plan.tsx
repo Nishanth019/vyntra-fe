@@ -10,10 +10,11 @@ import { Card } from '@/components/ui/card';
 import { Chip } from '@/components/ui/chip';
 import { DateField } from '@/components/ui/date-field';
 import { ErrorBanner } from '@/components/ui/error-banner';
+import { Icon } from '@/components/ui/icon';
 import { Screen } from '@/components/ui/screen';
 import { LoadingState } from '@/components/ui/states';
 import { TextField } from '@/components/ui/text-field';
-import { Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 import { useResource } from '@/hooks/use-resource';
 import { useTheme } from '@/hooks/use-theme';
 import { api, ApiError, type Member, type MembershipPlan } from '@/lib/api';
@@ -165,6 +166,17 @@ function NewPlanForm({ mode, member, plans }: { mode: NewPlanMode; member: Membe
         <PlanOptions plans={plans} value={planId} onChange={setPlanId} />
         {errors.membership_plan_id ? <Text style={[styles.error, { color: theme.danger }]}>{errors.membership_plan_id}</Text> : null}
 
+        {mode === 'change' && member.membership ? (
+          <View style={[styles.info, { backgroundColor: theme.primarySoft }]}>
+            <Icon name="info" color={theme.primary} size={18} />
+            <Text style={[styles.infoText, { color: theme.primary }]}>
+              {currentStart <= todayISO
+                ? `Start date can be any day between the current plan's start date (${formatDate(currentStart)}) and today (${formatDate(todayISO)}).`
+                : `Start date can be any day between today (${formatDate(todayISO)}) and the current plan's start date (${formatDate(currentStart)}).`}{' '}
+              To start after the current plan ends, use Add Future Plan.
+            </Text>
+          </View>
+        ) : null}
         <DateField
           label="Start Date"
           required
@@ -174,9 +186,7 @@ function NewPlanForm({ mode, member, plans }: { mode: NewPlanMode; member: Membe
           minimumDate={mode === 'early' ? earliestNext : mode === 'change' ? parseISODate(changeFrom) : undefined}
           maximumDate={mode === 'change' ? parseISODate(changeTo) : undefined}
           note={
-            mode === 'change' && member.membership
-              ? `From ${formatDate(changeFrom)} to ${formatDate(changeTo)}. To add a plan after the current one, use Add Future Plan.`
-              : mode === 'early' && member.membership
+            mode === 'early' && member.membership
                 ? `Current plan ends ${formatDate(member.membership.end_date)}. Pick that next day or later.`
                 : undefined
           }
@@ -211,7 +221,7 @@ function NewPlanForm({ mode, member, plans }: { mode: NewPlanMode; member: Membe
             <TextField
               label="Amount Received (₹)"
               icon="money"
-              placeholder={`Up to ${payable}`}
+              placeholder={plan ? `Up to ${payable}` : 'Choose a plan first'}
               keyboardType="decimal-pad"
               value={payment.amount}
               onChangeText={(text) => setPayment((current) => ({ ...current, amount: text.replace(/[^\d.]/g, '') }))}
@@ -350,6 +360,18 @@ function AdjustForm({ mode, member, next }: { mode: 'extend' | 'edit'; member: M
 }
 
 const styles = StyleSheet.create({
+  info: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+    padding: Spacing.three - 4,
+    borderRadius: Radius.md,
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '500',
+  },
   error: {
     fontSize: 13,
   },
