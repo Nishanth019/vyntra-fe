@@ -38,8 +38,16 @@ export type BusinessAccount = {
   website: string | null;
   terms_and_conditions: string | null;
   is_active: boolean;
+  /** Who owns the business and whether it's read-only because the owner's subscription ended. */
+  access: BusinessAccess | null;
   created_at: string;
   updated_at: string;
+};
+
+export type BusinessAccess = {
+  is_owner: boolean;
+  owner_name: string | null;
+  read_only: boolean;
 };
 
 /** Create needs `business_type_id`; updates are partial and can't change the type. */
@@ -402,6 +410,65 @@ export type NotificationSettings = {
   evening_summary: boolean;
 };
 
+export type SubscriptionPlan = {
+  code: 'MONTHLY' | 'QUARTERLY' | 'YEARLY' | (string & {});
+  name: string;
+  months: number;
+  price: string;
+  currency: string;
+  google_base_plan_id: string | null;
+};
+
+export type SubscriptionPayment = {
+  id: number;
+  provider: SubscriptionProvider;
+  amount: string;
+  currency: string;
+  status: string;
+  plan_name: string | null;
+  period_start: string | null;
+  period_end: string | null;
+  paid_at: string;
+};
+
+export type SubscriptionProvider = 'RAZORPAY' | 'GOOGLE_PLAY' | 'APPLE' | 'MANUAL';
+
+/**
+ * The logged-in login's own subscription. TRIAL → free days left; ACTIVE → paid and renewing;
+ * CANCELLED → paid, won't renew; GRACE → renewal failed, retrying; EXPIRED → read-only.
+ */
+export type SubscriptionInfo = {
+  state: 'TRIAL' | 'ACTIVE' | 'CANCELLED' | 'GRACE' | 'EXPIRED';
+  has_access: boolean;
+  can_purchase: boolean;
+  trial_ends_at: string;
+  current_period_end: string | null;
+  access_until: string;
+  days_left: number;
+  auto_renew: boolean;
+  provider: SubscriptionProvider | null;
+  plan: SubscriptionPlan | null;
+  owns_business: boolean;
+  plans: SubscriptionPlan[];
+  payments: SubscriptionPayment[];
+  payment_options: { razorpay: boolean; google_play: boolean; google_play_product_id: string };
+};
+
+export type RazorpayCheckout = {
+  key_id: string;
+  subscription_id: string;
+  plan: SubscriptionPlan;
+  name: string;
+  email: string;
+  contact: string;
+};
+
+export type RazorpayResult = {
+  razorpay_payment_id: string;
+  razorpay_subscription_id: string;
+  razorpay_signature: string;
+};
+
 export type SignupInput = {
   full_name: string;
   mobile_no: string;
@@ -422,6 +489,7 @@ export class ApiError extends Error {
 
 let authToken: string | null = null;
 let onUnauthorized: (() => void) | null = null;
+let onPaymentRequired: (() => void) | null = null;
 
 export function setAuthToken(token: string | null) {
   authToken = token;
@@ -430,6 +498,11 @@ export function setAuthToken(token: string | null) {
 /** Called when the backend rejects the saved token (expired or admin deactivated). */
 export function setUnauthorizedHandler(handler: (() => void) | null) {
   onUnauthorized = handler;
+}
+
+/** Called when a change is refused because the business owner's subscription has ended (HTTP 402). */
+export function setPaymentRequiredHandler(handler: (() => void) | null) {
+  onPaymentRequired = handler;
 }
 
 function withQuery(path: string, params: Record<string, string | number | boolean | undefined>) {
@@ -462,6 +535,7 @@ async function request<T>(path: string, options: { method?: string; body?: unkno
   if (response.ok) return data as T;
 
   if (response.status === 401 && authToken) onUnauthorized?.();
+  if (response.status === 402) onPaymentRequired?.();
   throw toApiError(response.status, data);
 }
 
@@ -488,6 +562,14 @@ export const api = {
   signup: (input: SignupInput) => request<AuthResponse>('/auth/signup/', { method: 'POST', body: input }),
   logout: () => request<null>('/auth/logout/', { method: 'POST' }),
   me: () => request<Admin>('/me/'),
+  subscription: () => request<SubscriptionInfo>('/subscription/'),
+  cancelSubscription: () => request<SubscriptionInfo>('/subscription/cancel/', { method: 'POST' }),
+  startRazorpayCheckout: (plan_code: string) =>
+    request<RazorpayCheckout>('/subscription/razorpay/', { method: 'POST', body: { plan_code } }),
+  confirmRazorpay: (result: RazorpayResult) =>
+    request<SubscriptionInfo>('/subscription/razorpay/confirm/', { method: 'POST', body: result }),
+  confirmGooglePlay: (purchase_token: string) =>
+    request<SubscriptionInfo>('/subscription/google-play/confirm/', { method: 'POST', body: { purchase_token } }),
   businessTypes: () => request<{ results: BusinessType[] }>('/business-types/'),
   businessAccounts: () => request<{ results: BusinessAccount[] }>('/business-accounts/'),
   businessAccount: (id: number) => request<BusinessAccount>(`/business-accounts/${id}/`),

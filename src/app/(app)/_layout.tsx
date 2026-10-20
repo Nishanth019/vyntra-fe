@@ -5,6 +5,7 @@ import { HeaderButton } from '@/components/ui/header-button';
 import { useStackOptions } from '@/hooks/use-stack-options';
 import { usePushNotifications } from '@/lib/push';
 import { useSession } from '@/lib/session';
+import { SubscriptionProvider } from '@/lib/subscription';
 
 /** Screens for a logged-in admin. The root layout only renders this group when there's a session. */
 export default function AppLayout() {
@@ -15,7 +16,7 @@ export default function AppLayout() {
   const logout = () => <HeaderButton icon="logout" label="Log out" onPress={signOut} />;
 
   return (
-    <>
+    <SubscriptionProvider>
       <StatusBar style="auto" />
       <Stack screenOptions={stackOptions}>
         <Stack.Screen name="index" options={{ title: 'Vyntra', headerRight: logout }} />
@@ -25,9 +26,10 @@ export default function AppLayout() {
         <Stack.Screen name="help" options={{ title: 'Help & FAQs' }} />
         <Stack.Screen name="contact" options={{ title: 'Contact Us' }} />
         <Stack.Screen name="appearance" options={{ title: 'Theme' }} />
+        <Stack.Screen name="subscription" options={{ title: 'Subscription' }} />
         {/* The business section has its own stack and header. */}
         <Stack.Screen name="business/[id]" options={{ headerShown: false }} />
       </Stack>
-    </>
+    </SubscriptionProvider>
   );
 }

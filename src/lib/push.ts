@@ -1,6 +1,7 @@
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
+import { router } from 'expo-router';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
@@ -63,8 +64,10 @@ export function usePushNotifications(loggedIn: boolean) {
       business_account_id?: number;
       member_id?: number | null;
       member_filter?: string | null;
+      open?: string;
     };
-    if (data?.business_account_id) openNotificationTarget(data.business_account_id, data);
+    if (data?.open === 'subscription') router.push('/subscription');
+    else if (data?.business_account_id) openNotificationTarget(data.business_account_id, data);
     Notifications.clearLastNotificationResponseAsync().catch(() => {});
   }, [loggedIn, lastResponse]);
 }

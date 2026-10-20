@@ -10,10 +10,12 @@ import { Icon, type IconName } from '@/components/ui/icon';
 import { IconBadge, type Tone } from '@/components/ui/icon-badge';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import type { SubscriptionInfo } from '@/lib/api';
 import { useBusiness } from '@/lib/business';
 import { initials } from '@/lib/format';
 import { PRIVACY_POLICY_URL } from '@/lib/links';
 import { useSession } from '@/lib/session';
+import { useSubscription } from '@/lib/subscription';
 
 const PANEL_WIDTH = Math.min(340, Dimensions.get('window').width * 0.84);
 
@@ -73,6 +75,7 @@ function MenuPanel({ onClose = () => {} }: { onClose?: () => void }) {
   const pathname = usePathname();
   const { admin, signOut } = useSession();
   const { account } = useBusiness();
+  const { subscription } = useSubscription();
   const params = { id: account.id };
   /** Whether the open screen is this item's, e.g. "/plans" under the business. */
   const at = (path: string) => pathname === `/business/${account.id}${path}`;
@@ -219,6 +222,13 @@ function MenuPanel({ onClose = () => {} }: { onClose?: () => void }) {
 
       <Section title="More">
         <MenuRow icon="person" title="My Profile" subtitle="Details & password" onPress={() => go('/profile')} />
+        <MenuRow
+          icon="crown"
+          title="Subscription"
+          subtitle={subscriptionLabel(subscription)}
+          active={pathname === '/subscription'}
+          onPress={() => go('/subscription')}
+        />
         <MenuRow icon="help" title="Need Help?" subtitle="FAQs" onPress={() => go('/help')} />
         <MenuRow icon="support" title="Contact Us" subtitle="Report your query or issue" onPress={() => go('/contact')} />
         <MenuRow
@@ -244,6 +254,20 @@ function MenuPanel({ onClose = () => {} }: { onClose?: () => void }) {
     </Text>
     </>
   );
+}
+
+function subscriptionLabel(subscription: SubscriptionInfo | null) {
+  if (!subscription) return 'Your plan';
+  switch (subscription.state) {
+    case 'TRIAL':
+      return `Free trial · ${subscription.days_left} day${subscription.days_left === 1 ? '' : 's'} left`;
+    case 'EXPIRED':
+      return 'Ended · Renew to keep editing';
+    case 'GRACE':
+      return 'Payment pending';
+    default:
+      return `${subscription.plan?.name ?? 'Paid'} plan`;
+  }
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {

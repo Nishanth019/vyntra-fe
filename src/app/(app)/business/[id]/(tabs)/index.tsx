@@ -2,6 +2,7 @@ import { router, type Href } from 'expo-router';
 import { use, useCallback, useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { SubscriptionBanner } from '@/components/subscription-banner';
 import { TabHeader, TabsContext } from '@/components/tab-header';
 import { ErrorBanner } from '@/components/ui/error-banner';
 import { Gradient } from '@/components/ui/gradient';
@@ -118,6 +119,8 @@ export default function DashboardScreen() {
             {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
           </Text>
         </View>
+
+        <SubscriptionBanner />
 
         <View style={styles.hero}>
           <Gradient from={theme.primary} to={theme.primaryEnd} />

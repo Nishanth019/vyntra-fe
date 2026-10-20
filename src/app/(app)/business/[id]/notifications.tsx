@@ -25,6 +25,7 @@ const TYPE_STYLES: Record<string, { icon: IconName; tone: Tone }> = {
   NO_SHOW: { icon: 'checkIn', tone: 'warning' },
   BIRTHDAY: { icon: 'person', tone: 'accent' },
   ACTIVITY: { icon: 'bell', tone: 'success' },
+  SUBSCRIPTION: { icon: 'crown', tone: 'warning' },
 };
 
 export default function NotificationsScreen() {

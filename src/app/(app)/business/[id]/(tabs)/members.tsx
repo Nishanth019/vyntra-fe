@@ -11,6 +11,7 @@ import {
 } from "react-native";
 
 import { MemberRow } from "@/components/member-row";
+import { SubscriptionBanner } from "@/components/subscription-banner";
 import { TabHeader, TabsContext } from "@/components/tab-header";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
@@ -133,6 +134,7 @@ export default function MembersScreen() {
       />
 
       <View style={[styles.search, page]}>
+        <SubscriptionBanner />
         <TextField
           label="Search members"
           hideLabel
@@ -259,6 +261,7 @@ export default function MembersScreen() {
 
 const styles = StyleSheet.create({
   search: {
+    gap: Spacing.three - 4,
     paddingHorizontal: Spacing.three + 4,
     paddingTop: Spacing.two,
   },
