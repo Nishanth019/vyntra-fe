@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Gradient } from '@/components/ui/gradient';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { IconBadge, type Tone } from '@/components/ui/icon-badge';
+import { OrganisationSwitcher } from '@/components/organisation-switcher';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { SubscriptionInfo } from '@/lib/api';
@@ -76,18 +77,24 @@ function MenuPanel({ onClose = () => {} }: { onClose?: () => void }) {
   const { admin, signOut } = useSession();
   const { account } = useBusiness();
   const { subscription } = useSubscription();
+  const [switching, setSwitching] = useState(false);
   const params = { id: account.id };
   /** Whether the open screen is this item's, e.g. "/plans" under the business. */
   const at = (path: string) => pathname === `/business/${account.id}${path}`;
 
-  function go(href: Href) {
+  function close() {
+    setSwitching(false);
     onClose();
+  }
+
+  function go(href: Href) {
+    close();
     router.push(href);
   }
 
   /** Switches to one of the bottom tabs. */
   function tab(href: Href) {
-    onClose();
+    close();
     router.navigate(href);
   }
 
@@ -115,11 +122,21 @@ function MenuPanel({ onClose = () => {} }: { onClose?: () => void }) {
       </View>
     </View>
 
-    <View style={[styles.businessStrip, { backgroundColor: theme.primarySoft }]}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Switch organisation"
+      accessibilityState={{ expanded: switching }}
+      onPress={() => setSwitching((open) => !open)}
+      style={({ pressed }) => [
+        styles.businessStrip,
+        { backgroundColor: theme.primarySoft },
+        pressed && styles.pressed,
+      ]}>
       <Text style={[styles.businessStripText, { color: theme.primary }]} numberOfLines={2}>
         {account.name} · ID {account.id}
       </Text>
-    </View>
+      <Icon name={switching ? 'chevronUp' : 'chevronDown'} color={theme.primary} size={20} />
+    </Pressable>
 
     <ScrollView style={styles.flex} contentContainerStyle={styles.items}>
       <Section title="Manage">
@@ -133,12 +150,11 @@ function MenuPanel({ onClose = () => {} }: { onClose?: () => void }) {
         <MenuRow
           icon="swap"
           title="Switch Business"
-          subtitle="Open another organisation"
-          onPress={() => {
-            onClose();
-            router.replace({ pathname: '/', params: { switch: '1' } });
-          }}
+          subtitle="Open or add an organisation"
+          trailing={switching ? 'chevronUp' : 'chevronDown'}
+          onPress={() => setSwitching((open) => !open)}
         />
+        {switching ? <OrganisationSwitcher current={account} onDone={close} /> : null}
       </Section>
 
       <Section title="Operations">
@@ -236,7 +252,7 @@ function MenuPanel({ onClose = () => {} }: { onClose?: () => void }) {
           title="Privacy Policy"
           subtitle="How your data is handled"
           onPress={() => {
-            onClose();
+            close();
             WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL);
           }}
         />
@@ -289,9 +305,19 @@ type MenuRowProps = {
   tone?: Tone;
   /** Highlights the item of the screen that's open. */
   active?: boolean;
+  /** The icon on the right; a chevron by default. */
+  trailing?: IconName;
 };
 
-function MenuRow({ icon, title, subtitle, onPress, tone = 'primary', active = false }: MenuRowProps) {
+function MenuRow({
+  icon,
+  title,
+  subtitle,
+  onPress,
+  tone = 'primary',
+  active = false,
+  trailing = 'chevronRight',
+}: MenuRowProps) {
   const theme = useTheme();
 
   return (
@@ -309,7 +335,7 @@ function MenuRow({ icon, title, subtitle, onPress, tone = 'primary', active = fa
           {subtitle}
         </Text>
       </View>
-      <Icon name="chevronRight" color={theme.textSecondary} size={18} />
+      <Icon name={trailing} color={theme.textSecondary} size={18} />
     </Pressable>
   );
 }
@@ -385,10 +411,14 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   businessStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.two + 4,
   },
   businessStripText: {
+    flex: 1,
     fontSize: 15,
     fontWeight: '700',
   },
