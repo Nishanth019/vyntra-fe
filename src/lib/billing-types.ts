@@ -1,6 +1,6 @@
 import type { SubscriptionInfo, SubscriptionPlan } from '@/lib/api';
 
-/** How this device pays for a Vyntra plan: Google Play in the Android app, Razorpay on the website. */
+/** How this device pays for a Vyntra plan: Razorpay, in the app and on the website. */
 export type Checkout = {
   /** The store this device pays through, or null when buying isn't possible here. */
   store: 'google_play' | 'razorpay' | null;

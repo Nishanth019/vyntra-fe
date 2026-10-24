@@ -457,6 +457,8 @@ export type SubscriptionInfo = {
 export type RazorpayCheckout = {
   key_id: string;
   subscription_id: string;
+  /** Razorpay's hosted payment page for this subscription (used by the app). */
+  payment_url: string;
   plan: SubscriptionPlan;
   name: string;
   email: string;

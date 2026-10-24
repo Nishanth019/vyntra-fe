@@ -1,6 +1,6 @@
 /**
  * Buying a Vyntra plan on the website, with Razorpay Checkout (UPI AutoPay, cards, net banking).
- * The Android app uses Google Play Billing instead (billing.ts).
+ * The app opens Razorpay's hosted payment page instead (billing.ts).
  */
 import { useEffect, useState } from 'react';
 
