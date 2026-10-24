@@ -118,18 +118,19 @@ export default function MembersScreen() {
       params: { id: account.id },
     });
 
+  const importMembers = () =>
+    router.push({ pathname: "/business/[id]/members/import", params: { id: account.id } });
+
   return (
     <>
       <TabHeader
         title="Members"
         subtitle="Manage your members"
         action={
-          <HeaderButton
-            icon="add"
-            label="Add member"
-            filled
-            onPress={addMember}
-          />
+          <View style={styles.headerActions}>
+            <HeaderButton icon="upload" label="Import members" onPress={importMembers} />
+            <HeaderButton icon="add" label="Add member" filled onPress={addMember} />
+          </View>
         }
       />
 
@@ -244,11 +245,10 @@ export default function MembersScreen() {
               }
               action={
                 filter === "all" && !search ? (
-                  <Button
-                    title="Add Member"
-                    icon="personAdd"
-                    onPress={addMember}
-                  />
+                  <View style={styles.emptyActions}>
+                    <Button title="Add Member" icon="personAdd" onPress={addMember} />
+                    <Button title="Import from Excel" icon="upload" variant="secondary" onPress={importMembers} />
+                  </View>
                 ) : null
               }
             />
@@ -260,6 +260,14 @@ export default function MembersScreen() {
 }
 
 const styles = StyleSheet.create({
+  headerActions: {
+    flexDirection: "row",
+    gap: Spacing.two,
+  },
+  emptyActions: {
+    gap: Spacing.two,
+    alignSelf: "stretch",
+  },
   search: {
     gap: Spacing.three - 4,
     paddingHorizontal: Spacing.three + 4,

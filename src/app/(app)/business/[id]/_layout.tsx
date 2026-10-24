@@ -48,6 +48,7 @@ export default function BusinessLayout() {
             <Stack.Screen name="(tabs)" options={{ headerShown: false, title: account.name }} />
             <Stack.Screen name="settings" options={{ title: 'Organisation Settings' }} />
             <Stack.Screen name="members/new" options={{ title: 'Add Member' }} />
+            <Stack.Screen name="members/import" options={{ title: 'Import Members' }} />
             <Stack.Screen name="members/[memberId]" options={{ title: 'Member Profile' }} />
             <Stack.Screen name="members/edit" options={{ title: 'Edit Member' }} />
             <Stack.Screen name="members/payment" options={{ title: 'Record Payment' }} />

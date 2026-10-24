@@ -5,6 +5,9 @@ const SITE_URL = API_URL.replace(/\/api\/v1\/?$/, '');
 export const PRIVACY_POLICY_URL = `${SITE_URL}/privacy/`;
 export const ACCOUNT_DELETION_URL = `${SITE_URL}/account-deletion/`;
 
+/** Excel/CSV template for importing members (headings plus one example row). */
+export const MEMBER_IMPORT_TEMPLATE_URL = `${API_URL}/members/import/template/`;
+
 /** A payment's printable receipt (the token in the link stands in for the login). */
 export const receiptUrl = (token: string) => `${SITE_URL}/receipts/${token}/`;
 

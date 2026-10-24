@@ -436,6 +436,27 @@ export type SubscriptionPayment = {
   receipt_token: string;
 };
 
+/** A picked file: `file` on web, `uri` on Android and iOS. */
+export type UploadFile = { uri: string; name: string; mimeType?: string; file?: File };
+
+/** One row of a member import file, as checked by the server. */
+export type MemberImportRow = {
+  row: number;
+  ok: boolean;
+  errors: string[];
+  member_code: string;
+  name: string;
+  plan: string;
+};
+
+export type MemberImportResult = {
+  dry_run: boolean;
+  total: number;
+  ok: number;
+  created: number;
+  rows: MemberImportRow[];
+};
+
 export type SubscriptionProvider = 'RAZORPAY' | 'GOOGLE_PLAY' | 'APPLE' | 'MANUAL';
 
 /**
@@ -524,7 +545,9 @@ function withQuery(path: string, params: Record<string, string | number | boolea
 
 async function request<T>(path: string, options: { method?: string; body?: unknown } = {}): Promise<T> {
   const headers: Record<string, string> = { Accept: 'application/json' };
-  if (options.body !== undefined) headers['Content-Type'] = 'application/json';
+  // A FormData body (file upload) sets its own multipart Content-Type.
+  const isForm = typeof FormData !== 'undefined' && options.body instanceof FormData;
+  if (options.body !== undefined && !isForm) headers['Content-Type'] = 'application/json';
   if (authToken) headers.Authorization = `Bearer ${authToken}`;
 
   let response: Response;
@@ -532,7 +555,7 @@ async function request<T>(path: string, options: { method?: string; body?: unkno
     response = await fetch(`${BASE_URL}${path}`, {
       method: options.method ?? 'GET',
       headers,
-      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      body: options.body === undefined ? undefined : isForm ? (options.body as FormData) : JSON.stringify(options.body),
       // Auth is the Bearer token only; don't let the platform cookie jar authenticate requests too.
       credentials: 'omit',
     });
@@ -697,6 +720,17 @@ export const api = {
     request<AccountAdmin>(withQuery('/admins/', { business_account_id, admin_id })),
   createAdmin: (business_account_id: number, input: SignupInput) =>
     request<AccountAdmin>(withQuery('/admins/', { business_account_id }), { method: 'POST', body: input }),
+  /** With `dryRun`, only checks the file; otherwise imports the rows that pass. */
+  importMembers: (business_account_id: number, upload: UploadFile, dryRun: boolean) => {
+    const form = new FormData();
+    if (upload.file) form.append('file', upload.file, upload.name);
+    // React Native's FormData takes a { uri, name, type } object for files.
+    else form.append('file', { uri: upload.uri, name: upload.name, type: upload.mimeType ?? 'application/octet-stream' } as unknown as Blob);
+    return request<MemberImportResult>(
+      withQuery('/members/import/', { business_account_id, dry_run: dryRun ? 'true' : undefined }),
+      { method: 'POST', body: form },
+    );
+  },
   removeAdmin: (business_account_id: number, admin_id: number) =>
     request<null>(withQuery('/admins/', { business_account_id, admin_id }), { method: 'DELETE' }),
   updateAdmin: (business_account_id: number, admin_id: number, input: AccountAdminInput) =>
