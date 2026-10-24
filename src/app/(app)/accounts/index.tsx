@@ -89,8 +89,8 @@ function GetStartedCard({ typeName, onAdd }: { typeName: string; onAdd: () => vo
             <View style={styles.heroText}>
               <Text style={[styles.featureTitle, { color: theme.text }]}>Add Your Organisation</Text>
               <Text style={[styles.featureText, { color: theme.textSecondary }]}>
-                Create your {typeName.toLowerCase()} organisation to manage members, plans and memberships in one
-                place.
+                Create your {typeName.toLowerCase()} organisation to manage{' '}
+                {typeName.startsWith('PG') ? 'rooms, tenants and rent' : 'members, plans and memberships'} in one place.
               </Text>
             </View>
           </View>
