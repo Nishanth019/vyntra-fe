@@ -80,7 +80,15 @@ export default function MemberProfileScreen() {
     .join(' · ');
   const contacts: { label: string; value: string; icon: IconName; onPress?: () => void }[] = [
     ...(member.phone
-      ? [{ label: 'Mobile Number', value: member.phone, icon: 'phone' as const, onPress: () => Linking.openURL(`tel:${member.phone}`) }]
+      ? [
+          { label: 'Mobile Number', value: member.phone, icon: 'phone' as const, onPress: () => Linking.openURL(`tel:${member.phone}`) },
+          {
+            label: 'WhatsApp',
+            value: needsReminder(member) ? 'Send a renewal or dues reminder' : 'Open chat',
+            icon: 'chat' as const,
+            onPress: () => openWhatsApp(member.phone!, memberMessage(member, account.name)),
+          },
+        ]
       : []),
     ...(member.email
       ? [{ label: 'Email Address', value: member.email, icon: 'mail' as const, onPress: () => Linking.openURL(`mailto:${member.email}`) }]
@@ -120,22 +128,6 @@ export default function MemberProfileScreen() {
         </View>
 
         <MembershipCard member={member} onChange={setMember} />
-
-        {member.phone ? (
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => openWhatsApp(member.phone!, memberMessage(member, account.name))}
-            style={({ pressed }) => [styles.whatsapp, pressed && styles.pressed]}>
-            <Icon name="chat" color="#FFFFFF" size={22} />
-            <View style={styles.flex}>
-              <Text style={styles.whatsappTitle}>WhatsApp {member.first_name}</Text>
-              <Text style={styles.whatsappDetail}>
-                {needsReminder(member) ? 'Opens their chat with a renewal / dues reminder ready to send' : 'Opens their chat'}
-              </Text>
-            </View>
-            <Icon name="chevronRight" color="#FFFFFF" size={18} />
-          </Pressable>
-        ) : null}
 
         <Text style={[styles.sectionTitle, { color: theme.text }]}>Quick Actions</Text>
         <View style={styles.quickRow}>
@@ -209,25 +201,6 @@ export default function MemberProfileScreen() {
 const styles = StyleSheet.create({
   flex: {
     flex: 1,
-  },
-  whatsapp: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingVertical: Spacing.three,
-    paddingHorizontal: Spacing.four,
-    borderRadius: Radius.lg,
-    backgroundColor: '#25D366',
-  },
-  whatsappTitle: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  whatsappDetail: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    opacity: 0.9,
   },
   profile: {
     flexDirection: 'row',

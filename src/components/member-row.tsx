@@ -61,12 +61,11 @@ export function PersonRow({ name, details, alert, badge, trailing, muted = false
   );
 }
 
-const WHATSAPP_GREEN = '#25D366';
-
 /** `whatsapp` adds a one-tap WhatsApp reminder for members who owe money or whose plan is ending or ended. */
 export function MemberRow({ member, onPress, whatsapp = false }: { member: Member; onPress?: () => void; whatsapp?: boolean }) {
   const status = membershipStatus(member);
   const { account } = useBusiness();
+  const theme = useTheme();
 
   return (
     <PersonRow
@@ -85,8 +84,8 @@ export function MemberRow({ member, onPress, whatsapp = false }: { member: Membe
             accessibilityLabel={`WhatsApp ${memberName(member)}`}
             hitSlop={8}
             onPress={() => openWhatsApp(member.phone!, memberMessage(member, account.name))}
-            style={({ pressed }) => [styles.whatsapp, pressed && styles.pressed]}>
-            <Icon name="chat" color="#FFFFFF" size={20} />
+            style={({ pressed }) => [styles.whatsapp, { backgroundColor: theme.primarySoft }, pressed && styles.pressed]}>
+            <Icon name="chat" color={theme.primary} size={20} />
           </Pressable>
         ) : undefined
       }
@@ -102,7 +101,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: WHATSAPP_GREEN,
   },
   row: {
     flexDirection: 'row',
