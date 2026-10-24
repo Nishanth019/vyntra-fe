@@ -17,6 +17,7 @@ import { confirm } from '@/lib/confirm';
 import { initials } from '@/lib/format';
 import { ACCOUNT_DELETION_URL, PRIVACY_POLICY_URL } from '@/lib/links';
 import { useSession } from '@/lib/session';
+import { useSubscription } from '@/lib/subscription';
 import { isValidMobile, MOBILE_ERROR } from '@/lib/mobile';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -87,6 +88,8 @@ function DeleteAccount({ onDeleted }: { onDeleted: () => void }) {
 
 function ProfileHeader({ admin }: { admin: Admin }) {
   const theme = useTheme();
+  // Owner of at least one business (they pay for Vyntra), otherwise an admin added by an owner.
+  const ownsBusiness = useSubscription().subscription?.owns_business ?? false;
 
   return (
     <Card>
@@ -104,7 +107,7 @@ function ProfileHeader({ admin }: { admin: Admin }) {
           </Text>
           <View style={styles.badges}>
             <Badge icon="checkCircle" label={admin.is_active ? 'Active' : 'Inactive'} color={theme.success} background={theme.successSoft} />
-            <Badge icon="crown" label="Admin" color={theme.primary} background={theme.primarySoft} />
+            <Badge icon="crown" label={ownsBusiness ? 'Owner' : 'Admin'} color={theme.primary} background={theme.primarySoft} />
           </View>
         </View>
       </View>
@@ -242,9 +245,10 @@ function InfoRow({ icon, label, value, last = false }: { icon: IconName; label: 
 
 function SecuritySection() {
   const theme = useTheme();
+  const { signIn } = useSession();
 
   const [open, setOpen] = useState(false);
-  const [values, setValues] = useState({ current: '', next: '', confirm: '' });
+  const [values, setValues] = useState({ next: '', confirm: '' });
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
   const [message, setMessage] = useState<{ text: string; success: boolean } | null>(null);
   const [saving, setSaving] = useState(false);
@@ -255,14 +259,13 @@ function SecuritySection() {
   }
 
   function close() {
-    setValues({ current: '', next: '', confirm: '' });
+    setValues({ next: '', confirm: '' });
     setErrors({});
     setOpen(false);
   }
 
   async function changePassword() {
     const nextErrors: Record<string, string> = {};
-    if (!values.current) nextErrors.current = 'Enter your current password.';
     if (values.next.length < 8) nextErrors.next = 'Use at least 8 characters.';
     if (values.confirm !== values.next) nextErrors.confirm = "Passwords don't match.";
     setErrors(nextErrors);
@@ -271,12 +274,13 @@ function SecuritySection() {
 
     setSaving(true);
     try {
-      await api.changePassword(values.current, values.next);
+      // Other phones are signed out; keep this one signed in with the fresh token.
+      await signIn(await api.changePassword(values.next));
       close();
-      setMessage({ text: 'Your password has been updated.', success: true });
+      setMessage({ text: 'Your password has been updated. Other phones and browsers have been signed out.', success: true });
     } catch (e) {
       if (!(e instanceof ApiError)) throw e;
-      setErrors({ current: e.fieldErrors.current_password, next: e.fieldErrors.new_password });
+      setErrors({ next: e.fieldErrors.new_password });
       if (e.message) setMessage({ text: e.message, success: false });
     } finally {
       setSaving(false);
@@ -306,16 +310,6 @@ function SecuritySection() {
       ) : null}
       {open ? (
         <>
-          <TextField
-            label="Current Password"
-            icon="lock"
-            password
-            autoCapitalize="none"
-            autoComplete="current-password"
-            value={values.current}
-            onChangeText={(text) => update('current', text)}
-            error={errors.current}
-          />
           <TextField
             label="New Password"
             icon="lock"

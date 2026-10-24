@@ -24,6 +24,8 @@ type AdminFormProps =
       onSubmit: (input: AccountAdminInput) => Promise<void>;
       /** Removes them from this business; not offered for yourself or the owner. */
       onRemove: () => Promise<void>;
+      /** Sets a new password for them (e.g. they forgot it); not offered for yourself or the owner. */
+      onSetPassword: (password: string) => Promise<void>;
     };
 
 /** Add an admin (a new login) or edit one's details and access to this business. */
@@ -124,7 +126,7 @@ export function AdminForm(props: AdminFormProps) {
 
       {formError ? <ErrorBanner message={formError} /> : null}
 
-      <Card title="User Details">
+      <Card title="Admin Details">
         <TextField label="Name" required icon="person" placeholder="Full name" autoCapitalize="words" {...field('full_name')} />
         <TextField
           label="Mobile No."
@@ -177,10 +179,82 @@ export function AdminForm(props: AdminFormProps) {
       </Card>
 
       <Button title={editing ? 'Save Changes' : 'Add Admin'} loading={submitting} onPress={submit} />
+      {canRemove && props.accountAdmin ? <SetPasswordCard onSetPassword={props.onSetPassword} /> : null}
       {canRemove ? (
         <Button title="Remove from Business" variant="destructive" loading={removing} onPress={remove} />
       ) : null}
     </Screen>
+  );
+}
+
+/** For an admin who forgot their password: the owner sets a new one and tells them. */
+function SetPasswordCard({ onSetPassword }: { onSetPassword: (password: string) => Promise<void> }) {
+  const theme = useTheme();
+  const [values, setValues] = useState({ next: '', confirm: '' });
+  const [errors, setErrors] = useState<Record<string, string | undefined>>({});
+  const [message, setMessage] = useState<{ text: string; success: boolean } | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  function update(field: keyof typeof values, value: string) {
+    setValues((current) => ({ ...current, [field]: value }));
+    setErrors((current) => ({ ...current, [field]: undefined }));
+  }
+
+  async function save() {
+    const nextErrors: Record<string, string> = {};
+    if (values.next.length < 8) nextErrors.next = 'Use at least 8 characters.';
+    if (values.confirm !== values.next) nextErrors.confirm = "Passwords don't match.";
+    setErrors(nextErrors);
+    setMessage(null);
+    if (Object.keys(nextErrors).length > 0) return;
+
+    setSaving(true);
+    try {
+      await onSetPassword(values.next);
+      setValues({ next: '', confirm: '' });
+      setMessage({ text: 'Password updated. Share the new password with them; they have been signed out.', success: true });
+    } catch (e) {
+      if (!(e instanceof ApiError)) throw e;
+      setErrors({ next: e.fieldErrors.new_password });
+      if (e.message) setMessage({ text: e.message, success: false });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card title="Set New Password" subtitle="If they forgot their password, set a new one here and tell them.">
+      {message ? (
+        message.success ? (
+          <Text style={[styles.hint, { color: theme.success }]}>{message.text}</Text>
+        ) : (
+          <ErrorBanner message={message.text} />
+        )
+      ) : null}
+      <TextField
+        label="New Password"
+        icon="lock"
+        password
+        placeholder="At least 8 characters"
+        autoCapitalize="none"
+        autoComplete="new-password"
+        value={values.next}
+        onChangeText={(text) => update('next', text)}
+        error={errors.next}
+      />
+      <TextField
+        label="Confirm Password"
+        icon="lock"
+        password
+        placeholder="Re-enter password"
+        autoCapitalize="none"
+        autoComplete="new-password"
+        value={values.confirm}
+        onChangeText={(text) => update('confirm', text)}
+        error={errors.confirm}
+      />
+      <Button title="Set Password" variant="secondary" icon="lock" loading={saving} onPress={save} />
+    </Card>
   );
 }
 

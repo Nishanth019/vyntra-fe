@@ -29,6 +29,7 @@ export default function EditAdminScreen() {
         if (isSelf) updateAdmin(updated.admin);
         router.back();
       }}
+      onSetPassword={(password) => api.setAdminPassword(account.id, adminId, password).then(() => {})}
       onRemove={async () => {
         await api.removeAdmin(account.id, adminId);
         router.back();

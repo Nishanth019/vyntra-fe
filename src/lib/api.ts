@@ -592,8 +592,15 @@ export const api = {
 
   updateProfile: (input: ProfileInput) => request<Admin>('/me/', { method: 'PUT', body: input }),
   deleteAccount: () => request<null>('/me/', { method: 'DELETE' }),
-  changePassword: (current_password: string, new_password: string) =>
-    request<{ result: string }>('/me/password/', { method: 'PUT', body: { current_password, new_password } }),
+  /** Returns a fresh token for this device; tokens on other devices stop working. */
+  changePassword: (new_password: string) =>
+    request<AuthResponse>('/me/password/', { method: 'PUT', body: { new_password } }),
+  /** Sets another admin's password (e.g. they forgot it); they are signed out everywhere. */
+  setAdminPassword: (business_account_id: number, admin_id: number, new_password: string) =>
+    request<{ result: string }>(withQuery('/admins/password/', { business_account_id, admin_id }), {
+      method: 'PUT',
+      body: { new_password },
+    }),
 
   durationTypes: () => request<{ results: DurationType[] }>('/duration-types/'),
   plans: (business_account_id: number, page?: number) =>
