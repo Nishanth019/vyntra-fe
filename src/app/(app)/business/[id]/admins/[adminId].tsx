@@ -29,6 +29,10 @@ export default function EditAdminScreen() {
         if (isSelf) updateAdmin(updated.admin);
         router.back();
       }}
+      onRemove={async () => {
+        await api.removeAdmin(account.id, adminId);
+        router.back();
+      }}
     />
   );
 }

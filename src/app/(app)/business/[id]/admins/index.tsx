@@ -27,7 +27,7 @@ export default function AdminsScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ headerRight: () => <HeaderButton icon="add" label="Add user" filled onPress={addAdmin} /> }} />
+      <Stack.Screen options={{ headerRight: () => <HeaderButton icon="add" label="Add admin" filled onPress={addAdmin} /> }} />
       {!admins ? (
         <LoadingState error={error} onRetry={retry} />
       ) : (

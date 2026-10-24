@@ -690,6 +690,8 @@ export const api = {
     request<AccountAdmin>(withQuery('/admins/', { business_account_id, admin_id })),
   createAdmin: (business_account_id: number, input: SignupInput) =>
     request<AccountAdmin>(withQuery('/admins/', { business_account_id }), { method: 'POST', body: input }),
+  removeAdmin: (business_account_id: number, admin_id: number) =>
+    request<null>(withQuery('/admins/', { business_account_id, admin_id }), { method: 'DELETE' }),
   updateAdmin: (business_account_id: number, admin_id: number, input: AccountAdminInput) =>
     request<AccountAdmin>(withQuery('/admins/', { business_account_id, admin_id }), { method: 'PUT', body: input }),
 };

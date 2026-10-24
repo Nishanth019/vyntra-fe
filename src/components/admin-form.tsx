@@ -9,6 +9,7 @@ import { TextField } from '@/components/ui/text-field';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { ApiError, type AccountAdmin, type AccountAdminInput, type SignupInput } from '@/lib/api';
+import { confirm } from '@/lib/confirm';
 import { isValidMobile, MOBILE_ERROR } from '@/lib/mobile';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -21,6 +22,8 @@ type AdminFormProps =
       /** Hides the login access switch, since admins can't block themselves. */
       isSelf: boolean;
       onSubmit: (input: AccountAdminInput) => Promise<void>;
+      /** Removes them from this business; not offered for yourself or the owner. */
+      onRemove: () => Promise<void>;
     };
 
 /** Add an admin (a new login) or edit one's details and access to this business. */
@@ -38,6 +41,28 @@ export function AdminForm(props: AdminFormProps) {
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const canRemove = props.accountAdmin && !props.isSelf && props.accountAdmin.role !== 'OWNER';
+
+  async function remove() {
+    if (!props.accountAdmin) return;
+    const name = props.accountAdmin.admin.full_name;
+    const ok = await confirm(
+      `Remove ${name}?`,
+      `${name} will lose access to this business straight away. Their login isn't deleted, and you can add them again later.`,
+      'Remove',
+    );
+    if (!ok) return;
+    setFormError('');
+    setRemoving(true);
+    try {
+      await props.onRemove();
+    } catch (e) {
+      if (!(e instanceof ApiError)) throw e;
+      setFormError(e.message);
+      setRemoving(false);
+    }
+  }
 
   function update(field: keyof typeof values, value: string) {
     setValues((current) => ({ ...current, [field]: value }));
@@ -151,7 +176,10 @@ export function AdminForm(props: AdminFormProps) {
         ) : null}
       </Card>
 
-      <Button title={editing ? 'Save Changes' : 'Add User'} loading={submitting} onPress={submit} />
+      <Button title={editing ? 'Save Changes' : 'Add Admin'} loading={submitting} onPress={submit} />
+      {canRemove ? (
+        <Button title="Remove from Business" variant="destructive" loading={removing} onPress={remove} />
+      ) : null}
     </Screen>
   );
 }
