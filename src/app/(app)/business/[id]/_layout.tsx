@@ -65,8 +65,8 @@ export default function BusinessLayout() {
             <Stack.Screen name="staff/new" options={{ title: 'Add Staff' }} />
             <Stack.Screen name="staff/[staffId]" options={{ title: 'Staff' }} />
             <Stack.Screen name="admins/index" options={{ title: 'Manage Admins' }} />
-            <Stack.Screen name="admins/new" options={{ title: 'Add User' }} />
-            <Stack.Screen name="admins/[adminId]" options={{ title: 'Edit User' }} />
+            <Stack.Screen name="admins/new" options={{ title: 'Add Admin' }} />
+            <Stack.Screen name="admins/[adminId]" options={{ title: 'Edit Admin' }} />
           </Stack>
         </View>
       </View>
