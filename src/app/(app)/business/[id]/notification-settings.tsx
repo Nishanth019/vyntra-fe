@@ -3,12 +3,13 @@ import { StyleSheet, Switch, Text, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { ErrorBanner } from '@/components/ui/error-banner';
 import { Screen } from '@/components/ui/screen';
 import { LoadingState } from '@/components/ui/states';
 import { Spacing } from '@/constants/theme';
 import { useResource } from '@/hooks/use-resource';
 import { useTheme } from '@/hooks/use-theme';
-import { api, type NotificationSettings } from '@/lib/api';
+import { api, ApiError, type NotificationSettings, type WhatsAppSettings } from '@/lib/api';
 import { useBusiness } from '@/lib/business';
 import { registerForPush } from '@/lib/push';
 
@@ -66,8 +67,90 @@ export default function NotificationSettingsScreen() {
           </View>
         ))}
       </Card>
+      <WhatsAppReminders />
       <TestPush />
     </Screen>
+  );
+}
+
+const WHATSAPP_OPTIONS: { key: keyof WhatsAppSettings; title: string; detail: string }[] = [
+  { key: 'expiry_reminders', title: 'Plan ending', detail: '3 days before and on the day their plan ends.' },
+  { key: 'expired_followups', title: 'Plan expired', detail: 'The day after it ends, asking them to renew.' },
+  { key: 'dues_reminders', title: 'Dues pending', detail: 'Every Monday, while they owe money.' },
+  { key: 'payment_receipts', title: 'Payment receipts', detail: 'Right after you record a payment.' },
+  { key: 'birthday_wishes', title: 'Birthday wishes', detail: 'On their birthday.' },
+];
+
+/** Automatic WhatsApp messages sent to members themselves (owner-only switches). */
+function WhatsAppReminders() {
+  const theme = useTheme();
+  const { account } = useBusiness();
+  const isOwner = Boolean(account.access?.is_owner);
+
+  const fetchSettings = useCallback(() => api.whatsappSettings(account.id), [account.id]);
+  const { data: settings, setData } = useResource(fetchSettings);
+  const [error, setError] = useState('');
+
+  // Hidden while loading, or if the server doesn't support it yet.
+  if (!settings) return null;
+
+  function toggle(key: keyof WhatsAppSettings, value: boolean) {
+    setError('');
+    setData({ ...settings!, [key]: value });
+    api.updateWhatsAppSettings(account.id, { [key]: value }).then(setData, (e) => {
+      setData({ ...settings!, [key]: !value });
+      setError(e instanceof ApiError ? e.message : 'Could not save. Please try again.');
+    });
+  }
+
+  const note = !settings.available
+    ? 'We are finishing the WhatsApp setup. Turn it on now and messages start automatically once it is ready.'
+    : `${settings.sent_this_month} of ${settings.monthly_limit} messages sent this month.`;
+
+  return (
+    <Card
+      title="WhatsApp to members"
+      subtitle="Reminders sent automatically to your members' WhatsApp, from Vyntra's WhatsApp number.">
+      {error ? <ErrorBanner message={error} /> : null}
+      <View style={styles.row}>
+        <View style={styles.text}>
+          <Text style={[styles.title, { color: theme.text }]}>Send WhatsApp reminders</Text>
+          <Text style={[styles.detail, { color: theme.textSecondary }]}>
+            {isOwner ? note : 'Only the owner of this business can change these.'}
+          </Text>
+        </View>
+        <Switch
+          value={settings.enabled}
+          disabled={!isOwner}
+          onValueChange={(value) => toggle('enabled', value)}
+          trackColor={{ true: theme.success, false: theme.border }}
+          thumbColor={theme.onPrimary}
+          accessibilityLabel="Send WhatsApp reminders"
+        />
+      </View>
+      {settings.enabled
+        ? WHATSAPP_OPTIONS.map((option) => (
+            <View key={option.key} style={styles.row}>
+              <View style={styles.text}>
+                <Text style={[styles.title, { color: theme.text }]}>{option.title}</Text>
+                <Text style={[styles.detail, { color: theme.textSecondary }]}>{option.detail}</Text>
+              </View>
+              <Switch
+                value={Boolean(settings[option.key])}
+                disabled={!isOwner}
+                onValueChange={(value) => toggle(option.key, value)}
+                trackColor={{ true: theme.primary, false: theme.border }}
+                thumbColor={theme.onPrimary}
+                accessibilityLabel={option.title}
+              />
+            </View>
+          ))
+        : null}
+      <Text style={[styles.detail, { color: theme.textSecondary }]}>
+        Members without a mobile number are skipped. To message one member yourself, open their profile and tap
+        WhatsApp.
+      </Text>
+    </Card>
   );
 }
 

@@ -410,6 +410,20 @@ export type NotificationSettings = {
   evening_summary: boolean;
 };
 
+/** Automatic WhatsApp messages to this business's members. Only the owner can change them. */
+export type WhatsAppSettings = {
+  enabled: boolean;
+  expiry_reminders: boolean;
+  expired_followups: boolean;
+  dues_reminders: boolean;
+  payment_receipts: boolean;
+  birthday_wishes: boolean;
+  /** False until Vyntra's WhatsApp account is connected on the server. */
+  available: boolean;
+  sent_this_month: number;
+  monthly_limit: number;
+};
+
 export type SubscriptionPlan = {
   code: 'MONTHLY' | 'QUARTERLY' | 'YEARLY' | (string & {});
   name: string;
@@ -670,6 +684,10 @@ export const api = {
   /** Marks one notification read, or all of them when `notification_id` is omitted. */
   markNotificationsRead: (business_account_id: number, notification_id?: number) =>
     request<null>(withQuery('/notifications/', { business_account_id, notification_id }), { method: 'PUT' }),
+  whatsappSettings: (business_account_id: number) =>
+    request<WhatsAppSettings>(withQuery('/whatsapp-settings/', { business_account_id })),
+  updateWhatsAppSettings: (business_account_id: number, input: Partial<WhatsAppSettings>) =>
+    request<WhatsAppSettings>(withQuery('/whatsapp-settings/', { business_account_id }), { method: 'PUT', body: input }),
   notificationSettings: (business_account_id: number) =>
     request<NotificationSettings>(withQuery('/notification-settings/', { business_account_id })),
   updateNotificationSettings: (business_account_id: number, input: Partial<NotificationSettings>) =>

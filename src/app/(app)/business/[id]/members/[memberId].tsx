@@ -17,6 +17,7 @@ import { useResource } from '@/hooks/use-resource';
 import { useTheme } from '@/hooks/use-theme';
 import { api, ApiError } from '@/lib/api';
 import { useBusiness } from '@/lib/business';
+import { memberMessage, openWhatsApp } from '@/lib/whatsapp';
 import { confirm } from '@/lib/confirm';
 import { formatDate } from '@/lib/dates';
 import { initials, memberName } from '@/lib/format';
@@ -79,7 +80,15 @@ export default function MemberProfileScreen() {
     .join(' · ');
   const contacts: { label: string; value: string; icon: IconName; onPress?: () => void }[] = [
     ...(member.phone
-      ? [{ label: 'Mobile Number', value: member.phone, icon: 'phone' as const, onPress: () => Linking.openURL(`tel:${member.phone}`) }]
+      ? [
+          { label: 'Mobile Number', value: member.phone, icon: 'phone' as const, onPress: () => Linking.openURL(`tel:${member.phone}`) },
+          {
+            label: 'WhatsApp',
+            value: 'Send a renewal or dues reminder',
+            icon: 'chat' as const,
+            onPress: () => openWhatsApp(member.phone!, memberMessage(member, account.name)),
+          },
+        ]
       : []),
     ...(member.email
       ? [{ label: 'Email Address', value: member.email, icon: 'mail' as const, onPress: () => Linking.openURL(`mailto:${member.email}`) }]
