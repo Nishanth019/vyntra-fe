@@ -183,6 +183,12 @@ function ChoosePlan({ subscription, checkout }: { subscription: SubscriptionInfo
           Your paid plan starts today. Free days left in the trial are not added.
         </Text>
       ) : null}
+      {subscription.state === 'CANCELLED' && checkout.store ? (
+        <Text style={[styles.footnote, { color: theme.textSecondary }]}>
+          Your new plan starts on {day(subscription.current_period_end)}, when your current plan ends. You will not be
+          charged until then.
+        </Text>
+      ) : null}
     </Card>
   );
 }

@@ -459,6 +459,8 @@ export type RazorpayCheckout = {
   subscription_id: string;
   /** Razorpay's hosted payment page for this subscription (used by the app). */
   payment_url: string;
+  /** Set when the new plan starts (and is first charged) only once the current paid period ends. */
+  starts_at: string | null;
   plan: SubscriptionPlan;
   name: string;
   email: string;
@@ -568,6 +570,8 @@ export const api = {
   cancelSubscription: () => request<SubscriptionInfo>('/subscription/cancel/', { method: 'POST' }),
   startRazorpayCheckout: (plan_code: string) =>
     request<RazorpayCheckout>('/subscription/razorpay/', { method: 'POST', body: { plan_code } }),
+  syncRazorpay: (subscription_id: string) =>
+    request<SubscriptionInfo>('/subscription/razorpay/sync/', { method: 'POST', body: { subscription_id } }),
   confirmRazorpay: (result: RazorpayResult) =>
     request<SubscriptionInfo>('/subscription/razorpay/confirm/', { method: 'POST', body: result }),
   confirmGooglePlay: (purchase_token: string) =>
