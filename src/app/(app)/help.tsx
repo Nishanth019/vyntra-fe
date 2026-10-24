@@ -42,7 +42,7 @@ const FAQS = [
   {
     question: 'Can someone else manage my business?',
     answer:
-      'Yes. Open Manage Users and add them with their own email or mobile and password. You can block their login access at any time.',
+      'Yes. Open Manage Admins and add them with their own email or mobile and password. You can block their login access at any time.',
   },
   {
     question: 'What happens when I deactivate a member or staff?',

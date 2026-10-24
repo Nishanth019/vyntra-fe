@@ -202,7 +202,7 @@ function MenuPanel({ onClose = () => {} }: { onClose?: () => void }) {
         />
         <MenuRow
           icon="admin"
-          title="Manage Users"
+          title="Manage Admins"
           subtitle="Who can log in to this business"
           active={at('/admins')}
                 onPress={() => go({ pathname: '/business/[id]/admins', params })}
