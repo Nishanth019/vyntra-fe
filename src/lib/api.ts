@@ -429,6 +429,11 @@ export type SubscriptionPayment = {
   period_start: string | null;
   period_end: string | null;
   paid_at: string;
+  /** How it was paid, e.g. "UPI" or "Card" (null when the provider didn't say). */
+  method: string | null;
+  receipt_number: string;
+  /** Opens the printable receipt; see receiptUrl() in links.ts. */
+  receipt_token: string;
 };
 
 export type SubscriptionProvider = 'RAZORPAY' | 'GOOGLE_PLAY' | 'APPLE' | 'MANUAL';

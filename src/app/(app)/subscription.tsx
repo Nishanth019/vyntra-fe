@@ -1,3 +1,4 @@
+import * as WebBrowser from 'expo-web-browser';
 import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -16,6 +17,7 @@ import { useCheckout, type Checkout } from '@/lib/billing';
 import { confirm } from '@/lib/confirm';
 import { toISODate, formatDate } from '@/lib/dates';
 import { formatMoney } from '@/lib/format';
+import { receiptUrl } from '@/lib/links';
 import { useSession } from '@/lib/session';
 import { useSubscription } from '@/lib/subscription';
 
@@ -360,17 +362,33 @@ function PaymentHistory({ payments }: { payments: SubscriptionPayment[] }) {
   const theme = useTheme();
   return (
     <Card title="Payments">
-      {payments.map((payment) => (
-        <View key={payment.id} style={styles.row}>
-          <View style={styles.flex}>
-            <Text style={[styles.rowValue, { color: theme.text, textAlign: 'left' }]}>
-              {payment.plan_name ?? 'Plan'} · {PROVIDER_LABELS[payment.provider] ?? payment.provider}
-            </Text>
-            <Text style={[styles.rowLabel, { color: theme.textSecondary }]}>{day(payment.paid_at)}</Text>
+      {payments.map((payment) => {
+        const period =
+          payment.period_start && payment.period_end ? `${day(payment.period_start)} – ${day(payment.period_end)}` : null;
+        const paidWith = payment.method ?? PROVIDER_LABELS[payment.provider] ?? payment.provider;
+        return (
+          <View key={payment.id} style={styles.row}>
+            <View style={styles.flex}>
+              <Text style={[styles.rowValue, { color: theme.text, textAlign: 'left' }]}>
+                {payment.plan_name ?? 'Plan'} · {paidWith}
+              </Text>
+              <Text style={[styles.rowLabel, { color: theme.textSecondary }]}>
+                Paid {day(payment.paid_at)}
+                {period ? ` · for ${period}` : ''}
+              </Text>
+            </View>
+            <View style={styles.paymentEnd}>
+              <Text style={[styles.price, { color: theme.text }]}>{formatMoney(payment.amount)}</Text>
+              <Pressable
+                accessibilityRole="link"
+                accessibilityLabel={`Receipt ${payment.receipt_number}`}
+                onPress={() => WebBrowser.openBrowserAsync(receiptUrl(payment.receipt_token))}>
+                <Text style={[styles.receiptLink, { color: theme.primary }]}>Receipt</Text>
+              </Pressable>
+            </View>
           </View>
-          <Text style={[styles.price, { color: theme.text }]}>{formatMoney(payment.amount)}</Text>
-        </View>
-      ))}
+        );
+      })}
     </Card>
   );
 }
@@ -495,6 +513,14 @@ const styles = StyleSheet.create({
   },
   rowLabel: {
     fontSize: 14,
+  },
+  paymentEnd: {
+    alignItems: 'flex-end',
+    gap: 2,
+  },
+  receiptLink: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   rowValue: {
     flexShrink: 1,

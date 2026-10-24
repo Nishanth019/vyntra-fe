@@ -5,6 +5,9 @@ const SITE_URL = API_URL.replace(/\/api\/v1\/?$/, '');
 export const PRIVACY_POLICY_URL = `${SITE_URL}/privacy/`;
 export const ACCOUNT_DELETION_URL = `${SITE_URL}/account-deletion/`;
 
+/** A payment's printable receipt (the token in the link stands in for the login). */
+export const receiptUrl = (token: string) => `${SITE_URL}/receipts/${token}/`;
+
 /** Policy pages Razorpay requires to be linked from the website. */
 export const POLICY_LINKS = [
   { label: 'Terms', url: `${SITE_URL}/terms/` },
