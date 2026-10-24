@@ -1,6 +1,7 @@
 import { Link, type Href } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import type { PropsWithChildren } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -8,6 +9,7 @@ import { Gradient } from '@/components/ui/gradient';
 import { Icon } from '@/components/ui/icon';
 import { MaxFormWidth, Radius, shadow, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { POLICY_LINKS } from '@/lib/links';
 
 type AuthLayoutProps = PropsWithChildren<{
   title: string;
@@ -51,6 +53,14 @@ export function AuthLayout({ title, subtitle, footer, children }: AuthLayoutProp
             <Link href={footer.href} replace style={[styles.footerLink, { color: theme.primary }]}>
               {footer.linkLabel}
             </Link>
+          </View>
+
+          <View style={styles.policies}>
+            {POLICY_LINKS.map((policy) => (
+              <Pressable key={policy.url} accessibilityRole="link" onPress={() => WebBrowser.openBrowserAsync(policy.url)}>
+                <Text style={[styles.policyLink, { color: theme.textSecondary }]}>{policy.label}</Text>
+              </Pressable>
+            ))}
           </View>
         </View>
       </KeyboardAwareScrollView>
@@ -133,5 +143,15 @@ const styles = StyleSheet.create({
   footerLink: {
     fontSize: 15,
     fontWeight: '600',
+  },
+  policies: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: Spacing.three,
+  },
+  policyLink: {
+    fontSize: 13,
+    textDecorationLine: 'underline',
   },
 });
