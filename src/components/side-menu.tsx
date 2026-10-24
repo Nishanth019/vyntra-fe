@@ -16,6 +16,7 @@ import { useBusiness } from '@/lib/business';
 import { initials } from '@/lib/format';
 import { PRIVACY_POLICY_URL } from '@/lib/links';
 import { useSession } from '@/lib/session';
+import { isPg } from '@/lib/pg';
 import { useSubscription } from '@/lib/subscription';
 
 const PANEL_WIDTH = Math.min(340, Dimensions.get('window').width * 0.84);
@@ -79,6 +80,7 @@ function MenuPanel({ onClose = () => {} }: { onClose?: () => void }) {
   const { subscription } = useSubscription();
   const [switching, setSwitching] = useState(false);
   const params = { id: account.id };
+  const pg = isPg(account);
   /** Whether the open screen is this item's, e.g. "/plans" under the business. */
   const at = (path: string) => pathname === `/business/${account.id}${path}`;
 
@@ -157,6 +159,75 @@ function MenuPanel({ onClose = () => {} }: { onClose?: () => void }) {
         {switching ? <OrganisationSwitcher current={account} onDone={close} /> : null}
       </Section>
 
+      {pg ? (
+        <Section title="Operations">
+          <MenuRow
+            icon="dashboard"
+            title="Dashboard"
+            subtitle="Beds, rent and money"
+            active={at('')}
+            onPress={() => tab({ pathname: '/business/[id]', params })}
+          />
+          <MenuRow
+            icon="people"
+            title="Tenants"
+            subtitle="Add, move in and check out"
+            active={at('/members')}
+            onPress={() => tab({ pathname: '/business/[id]/members', params })}
+          />
+          <MenuRow
+            icon="bed"
+            title="Rooms & Beds"
+            subtitle="Who is on which bed"
+            active={at('/rooms')}
+            onPress={() => tab({ pathname: '/business/[id]/rooms', params })}
+          />
+          <MenuRow
+            icon="card"
+            title="Rent Due"
+            subtitle="Who owes rent"
+            onPress={() => tab({ pathname: '/business/[id]/members', params: { ...params, filter: 'dues' } })}
+          />
+          <MenuRow
+            icon="wallet"
+            title="Expenses"
+            subtitle="What the PG spends"
+            active={at('/expenses')}
+            onPress={() => go({ pathname: '/business/[id]/expenses', params })}
+          />
+          <MenuRow
+            icon="staff"
+            title="Manage Staff"
+            subtitle="Wardens, cooks & more"
+            active={at('/staff')}
+            onPress={() => go({ pathname: '/business/[id]/staff', params })}
+          />
+          <MenuRow
+            icon="money"
+            title="Staff Salaries"
+            subtitle="Pay and track salaries"
+            active={at('/staff/salaries')}
+            onPress={() => go({ pathname: '/business/[id]/staff/salaries', params })}
+          />
+          {account.access?.is_owner ? (
+            <MenuRow
+              icon="admin"
+              title="Manage Admins"
+              subtitle="Who can log in to this business"
+              active={at('/admins')}
+              onPress={() => go({ pathname: '/business/[id]/admins', params })}
+            />
+          ) : null}
+          <MenuRow
+            icon="settings"
+            title="PG Settings"
+            subtitle="Notice period, UPI ID, rules"
+            active={at('/pg/settings')}
+            onPress={() => go({ pathname: '/business/[id]/pg/settings', params })}
+          />
+        </Section>
+      ) : (
+      <>
       <Section title="Operations">
         <MenuRow
           icon="dashboard"
@@ -200,6 +271,20 @@ function MenuPanel({ onClose = () => {} }: { onClose?: () => void }) {
           active={at('/staff')}
                 onPress={() => go({ pathname: '/business/[id]/staff', params })}
         />
+        <MenuRow
+          icon="wallet"
+          title="Expenses"
+          subtitle="Rent, bills & other costs"
+          active={at('/expenses')}
+          onPress={() => go({ pathname: '/business/[id]/expenses', params })}
+        />
+        <MenuRow
+          icon="money"
+          title="Staff Salaries"
+          subtitle="Pay and track salaries"
+          active={at('/staff/salaries')}
+          onPress={() => go({ pathname: '/business/[id]/staff/salaries', params })}
+        />
         {/* Only the owner sees and manages who can log in. */}
         {account.access?.is_owner ? (
           <MenuRow
@@ -221,6 +306,9 @@ function MenuPanel({ onClose = () => {} }: { onClose?: () => void }) {
                 onPress={() => go({ pathname: '/business/[id]/attendance/report', params })}
         />
       </Section>
+
+      </>
+      )}
 
       <Section title="Notifications">
         <MenuRow

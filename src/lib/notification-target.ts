@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 
+import { isTenantFilterKey } from '@/components/pg/tenant-filters';
 import { isMemberFilterKey } from '@/lib/member-filters';
 
 /** Opens what a notification is about: a member, a filtered member list, or the subscription page. */
@@ -12,7 +13,8 @@ export function openNotificationTarget(
     router.push('/subscription');
   } else if (target.member_id) {
     router.push({ pathname: '/business/[id]/members/[memberId]', params: { id, memberId: target.member_id } });
-  } else if (isMemberFilterKey(target.member_filter)) {
+  } else if (isMemberFilterKey(target.member_filter) || isTenantFilterKey(target.member_filter)) {
+    // A PG's Members tab is its tenant list, which has its own filters (e.g. "notice").
     router.navigate({ pathname: '/business/[id]/members', params: { id, filter: target.member_filter } });
   } else {
     router.navigate({ pathname: '/business/[id]', params: { id } });

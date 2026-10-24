@@ -1,4 +1,4 @@
-import { router, Stack, useLocalSearchParams, type Href } from 'expo-router';
+import { Redirect, router, Stack, useLocalSearchParams, type Href } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -21,8 +21,19 @@ import { memberMessage, needsReminder, openWhatsApp } from '@/lib/whatsapp';
 import { confirm } from '@/lib/confirm';
 import { formatDate } from '@/lib/dates';
 import { initials, memberName } from '@/lib/format';
+import { isPg } from '@/lib/pg';
 
 export default function MemberProfileScreen() {
+  const { account } = useBusiness();
+  const memberId = useLocalSearchParams<{ memberId: string }>().memberId;
+  // Notifications and pushes link here; a PG's people open as tenants.
+  if (isPg(account)) {
+    return <Redirect href={{ pathname: '/business/[id]/pg/tenants/[memberId]', params: { id: account.id, memberId } }} />;
+  }
+  return <GymMemberProfile />;
+}
+
+function GymMemberProfile() {
   const theme = useTheme();
   const { account } = useBusiness();
   const memberId = Number(useLocalSearchParams<{ memberId: string }>().memberId);

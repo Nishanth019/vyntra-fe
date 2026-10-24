@@ -10,6 +10,7 @@ import { useWideLayout } from '@/hooks/use-wide-layout';
 import { api, ApiError } from '@/lib/api';
 import { BusinessContext } from '@/lib/business';
 import { defaultBusiness } from '@/lib/default-business';
+import { isPg } from '@/lib/pg';
 import { useSession } from '@/lib/session';
 
 /** Loads the business account once and shares it with every screen inside it. */
@@ -52,7 +53,7 @@ export default function BusinessLayout() {
             <Stack.Screen name="members/[memberId]" options={{ title: 'Member Profile' }} />
             <Stack.Screen name="members/edit" options={{ title: 'Edit Member' }} />
             <Stack.Screen name="members/payment" options={{ title: 'Record Payment' }} />
-            <Stack.Screen name="members/history" options={{ title: 'Member History' }} />
+            <Stack.Screen name="members/history" options={{ title: isPg(account) ? 'History' : 'Member History' }} />
             <Stack.Screen name="members/plan" options={{ title: 'Membership' }} />
             <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
             <Stack.Screen name="notification-settings" options={{ title: 'Notification Settings' }} />
@@ -68,6 +69,24 @@ export default function BusinessLayout() {
             <Stack.Screen name="admins/index" options={{ title: 'Manage Admins' }} />
             <Stack.Screen name="admins/new" options={{ title: 'Add Admin' }} />
             <Stack.Screen name="admins/[adminId]" options={{ title: 'Edit Admin' }} />
+            <Stack.Screen name="staff/salaries" options={{ title: 'Staff Salaries' }} />
+            <Stack.Screen name="expenses/index" options={{ title: 'Expenses' }} />
+            <Stack.Screen name="expenses/new" options={{ title: 'Add Expense' }} />
+            <Stack.Screen name="expenses/[expenseId]" options={{ title: 'Expense' }} />
+            <Stack.Screen name="pg/settings" options={{ title: 'PG Settings' }} />
+            <Stack.Screen name="pg/rooms/new" options={{ title: 'Add Room' }} />
+            <Stack.Screen name="pg/rooms/[roomId]" options={{ title: 'Edit Room' }} />
+            <Stack.Screen name="pg/tenants/new" options={{ title: 'Add Tenant' }} />
+            <Stack.Screen name="pg/tenants/[memberId]" options={{ title: 'Tenant' }} />
+            <Stack.Screen name="pg/tenants/edit" options={{ title: 'Edit Tenant' }} />
+            <Stack.Screen name="pg/tenants/rent" options={{ title: 'Record Rent' }} />
+            <Stack.Screen name="pg/tenants/charge" options={{ title: 'Add Charge' }} />
+            <Stack.Screen name="pg/tenants/discount" options={{ title: 'Discount' }} />
+            <Stack.Screen name="pg/tenants/deposit" options={{ title: 'Security Deposit' }} />
+            <Stack.Screen name="pg/tenants/shift" options={{ title: 'Shift Bed' }} />
+            <Stack.Screen name="pg/tenants/notice" options={{ title: 'Give Notice' }} />
+            <Stack.Screen name="pg/tenants/checkout" options={{ title: 'Check Out' }} />
+            <Stack.Screen name="pg/tenants/move-in" options={{ title: 'Move Back In' }} />
           </Stack>
         </View>
       </View>

@@ -219,6 +219,9 @@ export type Staff = {
   phone: string | null;
   email: string | null;
   role: string | null;
+  /** Monthly salary, used by Staff Salaries. */
+  salary: string | null;
+  joining_date: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -231,7 +234,272 @@ export type StaffInput = {
   phone?: string;
   email?: string;
   role?: string;
+  salary?: string | null;
   is_active?: boolean;
+};
+
+export type StaffSalary = {
+  id: number;
+  salary_month: string;
+  amount: string;
+  paid_on: string | null;
+  payment_method: string | null;
+  expense_id: number | null;
+};
+
+/** One month of salaries: every active staff member with what was paid (null = not paid yet). */
+export type SalaryMonth = {
+  month: string;
+  results: { staff: Staff; salary: StaffSalary | null }[];
+  paid: string;
+  pending: string;
+};
+
+export type ExpenseCategory =
+  | 'RENT' | 'ELECTRICITY' | 'WATER' | 'INTERNET' | 'SALARY' | 'MAINTENANCE' | 'REPAIRS' | 'EQUIPMENT'
+  | 'GROCERIES' | 'CLEANING' | 'SUPPLIES' | 'MARKETING' | 'TAXES' | 'OTHER';
+
+export type Expense = {
+  id: number;
+  category: ExpenseCategory;
+  amount: string;
+  expense_date: string;
+  description: string;
+  vendor: string | null;
+  payment_method: string | null;
+  notes: string | null;
+  /** Made by paying a staff salary; changed from Staff Salaries, not here. */
+  is_salary: boolean;
+  created_at: string;
+};
+
+export type ExpenseInput = {
+  category?: ExpenseCategory;
+  amount?: string;
+  expense_date?: string;
+  description?: string;
+  vendor?: string;
+  payment_method?: string | null;
+  notes?: string;
+};
+
+export type ExpenseList = Paginated<Expense> & {
+  /** Total of the period (and category, when filtered). */
+  total: string;
+  by_category: { category: ExpenseCategory; total: string }[];
+};
+
+export type ExpenseQuery = {
+  business_account_id: number;
+  date_from?: string;
+  date_to?: string;
+  category?: ExpenseCategory;
+  page?: number;
+};
+
+// ----- PG businesses ------------------------------------------------------------------------------
+
+export type PgSettings = {
+  property_type: 'PG' | 'HOSTEL' | 'COLIVING';
+  gender: 'MALE' | 'FEMALE' | 'COED';
+  facilities: string[] | null;
+  default_due_day: number;
+  prorate_first_bill: boolean;
+  notice_period_days: number;
+  eb_unit_price: string | null;
+  upi_id: string | null;
+  house_rules: string | null;
+};
+
+export type PgOccupant = {
+  member_id: number;
+  name: string;
+  phone: string | null;
+  tenancy_status: 'ACTIVE' | 'NOTICE';
+  expected_end_date: string | null;
+  rent: string;
+};
+
+export type PgBed = { id: number; label: string; occupant: PgOccupant | null };
+
+export type PgRoom = {
+  id: number;
+  room_number: string;
+  floor: string | null;
+  is_ac: boolean;
+  rent_per_bed: string;
+  amenities: string[] | null;
+  notes: string | null;
+  beds: PgBed[];
+  created_at: string;
+};
+
+export type PgRoomInput = {
+  room_number?: string;
+  floor?: string;
+  is_ac?: boolean;
+  rent_per_bed?: string;
+  amenities?: string[];
+  notes?: string;
+  bed_count?: number;
+};
+
+export type PgTenantDetails = {
+  occupation: string | null;
+  permanent_address: string | null;
+  id_type: string | null;
+  id_last4: string | null;
+  emergency_contact_name: string | null;
+  emergency_contact_phone: string | null;
+  emergency_contact_relation: string | null;
+  vehicle_number: string | null;
+};
+
+/** ACTIVE: living here · NOTICE: leaving on expected_end_date · ENDED: moved out on end_date. */
+export type PgTenancyStatus = 'ACTIVE' | 'NOTICE' | 'ENDED';
+
+export type PgTenancy = {
+  id: number;
+  status: PgTenancyStatus;
+  bed: { id: number; label: string; room: { id: number; room_number: string; floor: string | null; is_ac: boolean } };
+  /** Monthly rent. */
+  rent: string;
+  billing_cycle_months: number;
+  due_day: number;
+  start_date: string;
+  notice_date: string | null;
+  expected_end_date: string | null;
+  end_date: string | null;
+  leave_reason: string | null;
+  deposit_amount: string;
+  /** Rent paid ahead, used up by the next bills. */
+  advance_balance: string;
+};
+
+export type PgTenant = {
+  id: number;
+  member_code: string;
+  first_name: string;
+  last_name: string | null;
+  phone: string | null;
+  email: string | null;
+  gender: string | null;
+  date_of_birth: string | null;
+  is_active: boolean;
+  pg_details: PgTenantDetails | null;
+  tenancy: PgTenancy | null;
+  total_due: string;
+  /** Due date of the oldest unpaid bill. */
+  oldest_due_date: string | null;
+  created_at: string;
+};
+
+export type PgBill = {
+  id: number;
+  period_start: string;
+  period_end: string;
+  due_date: string;
+  total: string;
+  discount: string;
+  paid: string;
+  balance: string;
+  status: 'UNPAID' | 'PARTIAL' | 'PAID';
+  is_overdue: boolean;
+  items: { id: number; item_type: 'RENT' | 'CHARGE' | 'ADJUSTMENT'; description: string; amount: string }[];
+  payments: Payment[];
+};
+
+export type PgDeposit = {
+  agreed: string;
+  collected: string;
+  refunded: string;
+  deducted: string;
+  held: string;
+  pending: string;
+};
+
+export type PgDepositEntry = {
+  id: number;
+  entry_type: 'COLLECT' | 'REFUND' | 'DEDUCT';
+  amount: string;
+  entry_date: string;
+  payment_method: string | null;
+  reason: string | null;
+  created_at: string;
+};
+
+/** A tenant with everything their profile shows. */
+export type PgTenantProfile = PgTenant & {
+  bills: PgBill[];
+  deposit: PgDeposit | null;
+  deposit_entries: PgDepositEntry[];
+  past_stays: PgTenancy[];
+  /** Set right after a checkout. */
+  checkout?: { deposit_refunded: string; advance_refunded: string; dues: string };
+};
+
+/** Rent and dates of a stay (moving in or back in). */
+export type PgStayInput = {
+  bed_id: number;
+  rent?: string;
+  billing_cycle_months?: number;
+  due_day?: number;
+  start_date?: string;
+  prorate_first_bill?: boolean;
+  deposit_amount?: string;
+  deposit_paid?: string;
+  charges?: { description: string; amount: string }[];
+  payment?: PaymentInput;
+};
+
+export type PgTenantInput = Partial<PgStayInput> & {
+  member_code?: string;
+  first_name?: string;
+  last_name?: string;
+  phone?: string;
+  email?: string;
+  gender?: string;
+  date_of_birth?: string | null;
+} & Partial<{ [K in keyof PgTenantDetails]: string }>;
+
+export type PgTenantQuery = {
+  business_account_id: number;
+  status?: 'living' | 'active' | 'notice' | 'past';
+  search?: string;
+  has_dues?: boolean;
+  page?: number;
+};
+
+export type PgTenantAction =
+  | { action: 'shift'; member_id: number; bed_id: number; rent?: string }
+  | { action: 'notice'; member_id: number; leave_date: string; reason?: string }
+  | { action: 'cancel_notice'; member_id: number }
+  | {
+      action: 'checkout';
+      member_id: number;
+      leave_date: string;
+      reason?: string;
+      prorate_last_bill?: boolean;
+      dues_from_deposit?: boolean;
+      deduction?: string;
+      deduction_reason?: string;
+      refund_method?: string;
+    }
+  | ({ action: 'move_in'; member_id: number } & PgStayInput);
+
+export type PgCheckoutPreview = { leave_date: string; dues: string; advance: string; deposit_held: string };
+
+export type PgDashboard = {
+  beds: { total: number; occupied: number; vacant: number };
+  rooms: number;
+  tenants: { living: number; notice: number; leaving_this_week: number; joined_this_month: number };
+  collections: CollectionsSummary;
+  dues: { total: string; overdue: string; due_today: string; tenants: number };
+  deposits_held: string;
+  month_expenses: string;
+  month_profit: string;
+  checked_in_today: number;
+  unread_notifications: number;
 };
 
 export type StaffQuery = {
@@ -544,7 +812,8 @@ function withQuery(path: string, params: Record<string, string | number | boolea
 }
 
 async function request<T>(path: string, options: { method?: string; body?: unknown } = {}): Promise<T> {
-  const headers: Record<string, string> = { Accept: 'application/json' };
+  // Tells the server this build can run PG businesses (older builds only see gyms).
+  const headers: Record<string, string> = { Accept: 'application/json', 'X-Vyntra-Features': 'pg' };
   // A FormData body (file upload) sets its own multipart Content-Type.
   const isForm = typeof FormData !== 'undefined' && options.body instanceof FormData;
   if (options.body !== undefined && !isForm) headers['Content-Type'] = 'application/json';
@@ -731,6 +1000,78 @@ export const api = {
       { method: 'POST', body: form },
     );
   },
+  staffSalaries: (business_account_id: number, month: string) =>
+    request<SalaryMonth>(withQuery('/staff-salaries/', { business_account_id, month })),
+  paySalary: (
+    business_account_id: number,
+    input: { staff_id: number; salary_month: string; amount: string; paid_on?: string; payment_method?: string },
+  ) => request<StaffSalary>(withQuery('/staff-salaries/', { business_account_id }), { method: 'POST', body: input }),
+  undoSalary: (business_account_id: number, salary_id: number) =>
+    request<null>(withQuery('/staff-salaries/', { business_account_id, salary_id }), { method: 'DELETE' }),
+
+  expenses: (query: ExpenseQuery) => request<ExpenseList>(withQuery('/expenses/', query)),
+  expense: (business_account_id: number, expense_id: number) =>
+    request<Expense>(withQuery('/expenses/', { business_account_id, expense_id })),
+  createExpense: (business_account_id: number, input: ExpenseInput) =>
+    request<Expense>(withQuery('/expenses/', { business_account_id }), { method: 'POST', body: input }),
+  updateExpense: (business_account_id: number, expense_id: number, input: ExpenseInput) =>
+    request<Expense>(withQuery('/expenses/', { business_account_id, expense_id }), { method: 'PUT', body: input }),
+  deleteExpense: (business_account_id: number, expense_id: number) =>
+    request<null>(withQuery('/expenses/', { business_account_id, expense_id }), { method: 'DELETE' }),
+
+  pgDashboard: (business_account_id: number) =>
+    request<PgDashboard>(withQuery('/pg/dashboard/', { business_account_id })),
+  pgSettings: (business_account_id: number) =>
+    request<PgSettings>(withQuery('/pg/property/', { business_account_id })),
+  updatePgSettings: (business_account_id: number, input: Partial<PgSettings>) =>
+    request<PgSettings>(withQuery('/pg/property/', { business_account_id }), { method: 'PUT', body: input }),
+  pgRooms: (business_account_id: number) =>
+    request<{ results: PgRoom[] }>(withQuery('/pg/rooms/', { business_account_id })),
+  createPgRoom: (business_account_id: number, input: PgRoomInput) =>
+    request<PgRoom>(withQuery('/pg/rooms/', { business_account_id }), { method: 'POST', body: input }),
+  updatePgRoom: (business_account_id: number, room_id: number, input: PgRoomInput) =>
+    request<PgRoom>(withQuery('/pg/rooms/', { business_account_id, room_id }), { method: 'PUT', body: input }),
+  deletePgRoom: (business_account_id: number, room_id: number) =>
+    request<null>(withQuery('/pg/rooms/', { business_account_id, room_id }), { method: 'DELETE' }),
+  pgTenants: (query: PgTenantQuery) => request<Paginated<PgTenant>>(withQuery('/pg/tenants/', query)),
+  pgTenant: (business_account_id: number, member_id: number) =>
+    request<PgTenantProfile>(withQuery('/pg/tenants/', { business_account_id, member_id })),
+  createPgTenant: (business_account_id: number, input: PgTenantInput) =>
+    request<PgTenantProfile>(withQuery('/pg/tenants/', { business_account_id }), { method: 'POST', body: input }),
+  updatePgTenant: (business_account_id: number, member_id: number, input: PgTenantInput) =>
+    request<PgTenantProfile>(withQuery('/pg/tenants/', { business_account_id, member_id }), {
+      method: 'PUT',
+      body: input,
+    }),
+  pgTenantAction: (business_account_id: number, input: PgTenantAction) =>
+    request<PgTenantProfile>(withQuery('/pg/tenants/action/', { business_account_id }), { method: 'POST', body: input }),
+  pgCheckoutPreview: (business_account_id: number, member_id: number, leave_date: string, prorate_last_bill: boolean) =>
+    request<PgCheckoutPreview>(
+      withQuery('/pg/checkout-preview/', { business_account_id, member_id, leave_date, prorate_last_bill }),
+    ),
+  pgBillDiscount: (business_account_id: number, bill_id: number, discount: string) =>
+    request<PgTenantProfile>(withQuery('/pg/bills/', { business_account_id, bill_id }), {
+      method: 'PUT',
+      body: { discount },
+    }),
+  pgAddCharge: (business_account_id: number, input: { member_id: number; description: string; amount: string }) =>
+    request<PgTenantProfile>(withQuery('/pg/charges/', { business_account_id }), { method: 'POST', body: input }),
+  pgRecordRent: (
+    business_account_id: number,
+    input: PaymentInput & { member_id: number; bill_id?: number; payment_date?: string },
+  ) => request<PgTenantProfile>(withQuery('/pg/payments/', { business_account_id }), { method: 'POST', body: input }),
+  pgDeposit: (
+    business_account_id: number,
+    input: {
+      member_id: number;
+      entry_type: PgDepositEntry['entry_type'];
+      amount: string;
+      payment_method?: string;
+      reason?: string;
+      entry_date?: string;
+    },
+  ) => request<PgTenantProfile>(withQuery('/pg/deposits/', { business_account_id }), { method: 'POST', body: input }),
+
   removeAdmin: (business_account_id: number, admin_id: number) =>
     request<null>(withQuery('/admins/', { business_account_id, admin_id }), { method: 'DELETE' }),
   updateAdmin: (business_account_id: number, admin_id: number, input: AccountAdminInput) =>

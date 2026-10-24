@@ -10,12 +10,15 @@ import { TextField } from '@/components/ui/text-field';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { ApiError, type Staff, type StaffInput } from '@/lib/api';
+import { useBusiness } from '@/lib/business';
 import { isValidMobile, MOBILE_ERROR } from '@/lib/mobile';
+import { isPg } from '@/lib/pg';
 
 // Quick picks; any other role can be typed in.
-const ROLES = ['Trainer', 'Front Desk', 'Manager', 'Housekeeping'];
+const GYM_ROLES = ['Trainer', 'Front Desk', 'Manager', 'Housekeeping'];
+const PG_ROLES = ['Warden', 'Cook', 'Cleaner', 'Security'];
 
-const FIELDS = ['employee_code', 'first_name', 'last_name', 'phone', 'email', 'role'] as const;
+const FIELDS = ['employee_code', 'first_name', 'last_name', 'phone', 'email', 'role', 'salary'] as const;
 type Field = (typeof FIELDS)[number];
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -29,7 +32,10 @@ type StaffFormProps = {
 
 export function StaffForm({ staff, onSubmit }: StaffFormProps) {
   const theme = useTheme();
-  const initial = Object.fromEntries(FIELDS.map((field) => [field, staff?.[field] ?? ''])) as Record<Field, string>;
+  const ROLES = isPg(useBusiness().account) ? PG_ROLES : GYM_ROLES;
+  const initial = Object.fromEntries(
+    FIELDS.map((field) => [field, field === 'salary' && staff?.salary ? String(Number(staff.salary)) : (staff?.[field] ?? '')]),
+  ) as Record<Field, string>;
 
   const [values, setValues] = useState(initial);
   const [isActive, setIsActive] = useState(staff?.is_active ?? true);
@@ -51,6 +57,7 @@ export function StaffForm({ staff, onSubmit }: StaffFormProps) {
     if (!trimmed.first_name) nextErrors.first_name = 'Enter the first name.';
     if (trimmed.phone && !isValidMobile(trimmed.phone)) nextErrors.phone = MOBILE_ERROR;
     if (trimmed.email && !EMAIL_PATTERN.test(trimmed.email)) nextErrors.email = 'Enter a valid email address.';
+    if (trimmed.salary && !(Number(trimmed.salary) >= 0)) nextErrors.salary = 'Enter a valid amount.';
     setErrors(nextErrors);
     setFormError('');
     if (Object.keys(nextErrors).length > 0) return;
@@ -58,7 +65,11 @@ export function StaffForm({ staff, onSubmit }: StaffFormProps) {
     // New: send what's filled in. Edit: send only what changed.
     const input: StaffInput = {};
     for (const field of FIELDS) {
+      if (field === 'salary') continue;
       if (staff ? trimmed[field] !== initial[field] : trimmed[field]) input[field] = trimmed[field];
+    }
+    if (staff ? trimmed.salary !== initial.salary : trimmed.salary) {
+      input.salary = trimmed.salary ? Number(trimmed.salary).toFixed(2) : null;
     }
     if (staff && isActive !== staff.is_active) input.is_active = isActive;
 
@@ -117,6 +128,14 @@ export function StaffForm({ staff, onSubmit }: StaffFormProps) {
           autoCapitalize="none"
           keyboardType="email-address"
           {...field('email')}
+        />
+        <TextField
+          label="Monthly Salary (₹)"
+          icon="rupee"
+          placeholder="Optional"
+          keyboardType="decimal-pad"
+          {...field('salary')}
+          onChangeText={(text) => update('salary', text.replace(/[^\d.]/g, ''))}
         />
       </Card>
 

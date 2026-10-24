@@ -11,6 +11,7 @@ import {
 } from "react-native";
 
 import { MemberRow } from "@/components/member-row";
+import { PgTenants } from "@/components/pg/pg-tenants";
 import { SubscriptionBanner } from "@/components/subscription-banner";
 import { TabHeader, TabsContext } from "@/components/tab-header";
 import { Button } from "@/components/ui/button";
@@ -32,8 +33,14 @@ import {
   MEMBER_FILTERS,
   type MemberFilterKey,
 } from "@/lib/member-filters";
+import { isPg } from "@/lib/pg";
 
 export default function MembersScreen() {
+  const { account } = useBusiness();
+  return isPg(account) ? <PgTenants /> : <GymMembers />;
+}
+
+function GymMembers() {
   const theme = useTheme();
   const { account } = useBusiness();
   // In a desktop browser the list is centered at the same width as the header.

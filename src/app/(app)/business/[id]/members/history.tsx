@@ -17,6 +17,7 @@ import { useBusiness } from '@/lib/business';
 import { daysUntil, formatDate, formatTime, toISODate } from '@/lib/dates';
 import { formatMoney } from '@/lib/format';
 import { paymentMethodLabel } from '@/lib/payments';
+import { isPg } from '@/lib/pg';
 
 type HistoryView = 'timeline' | 'plans';
 
@@ -31,6 +32,18 @@ const ACTIVITY_STYLES: Record<string, { icon: IconName; tone: Tone }> = {
   PAYMENT_DELETED: { icon: 'money', tone: 'danger' },
   MEMBER_DEACTIVATED: { icon: 'personOff', tone: 'danger' },
   MEMBER_REACTIVATED: { icon: 'check', tone: 'success' },
+  // PG tenants
+  TENANT_MOVED_IN: { icon: 'bed', tone: 'primary' },
+  TENANT_MOVED_OUT: { icon: 'logoutDoor', tone: 'neutral' },
+  BED_CHANGED: { icon: 'swap', tone: 'accent' },
+  NOTICE_GIVEN: { icon: 'calendar', tone: 'warning' },
+  NOTICE_CANCELLED: { icon: 'renew', tone: 'success' },
+  TENANCY_UPDATED: { icon: 'edit', tone: 'accent' },
+  CHARGE_ADDED: { icon: 'add', tone: 'warning' },
+  DISCOUNT_GIVEN: { icon: 'rupee', tone: 'accent' },
+  DEPOSIT_COLLECT: { icon: 'savings', tone: 'success' },
+  DEPOSIT_REFUND: { icon: 'renew', tone: 'primary' },
+  DEPOSIT_DEDUCT: { icon: 'wallet', tone: 'warning' },
 };
 
 function membershipPill(membership: Membership): { label: string; tone: Tone } {
@@ -43,6 +56,10 @@ function membershipPill(membership: Membership): { label: string; tone: Tone } {
 export default function MemberHistoryScreen() {
   const memberId = Number(useLocalSearchParams<{ memberId: string }>().memberId);
   const [view, setView] = useState<HistoryView>('timeline');
+  const { account } = useBusiness();
+
+  // A PG tenant's bills and payments are on their profile; here is just the timeline.
+  if (isPg(account)) return <Timeline memberId={memberId} />;
 
   return (
     <>

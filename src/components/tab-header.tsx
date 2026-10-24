@@ -10,6 +10,7 @@ import { PageWidth, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useWideLayout } from '@/hooks/use-wide-layout';
 import { useBusiness } from '@/lib/business';
+import { isPg } from '@/lib/pg';
 
 type TabsContextValue = {
   openMenu: () => void;
@@ -58,7 +59,7 @@ export function TabHeader({ brand = false, title, subtitle, action }: TabHeaderP
         ) : (
           <View style={[styles.flex, styles.business]}>
             <View style={[styles.logo, { backgroundColor: theme.primarySoft }]}>
-              <Icon name="dumbbell" color={theme.primary} size={24} />
+              <Icon name={isPg(account) ? 'bed' : 'dumbbell'} color={theme.primary} size={24} />
             </View>
             <View style={styles.flex}>
               <Text style={[styles.businessName, { color: theme.text }]} numberOfLines={2}>
