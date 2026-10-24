@@ -200,13 +200,16 @@ function MenuPanel({ onClose = () => {} }: { onClose?: () => void }) {
           active={at('/staff')}
                 onPress={() => go({ pathname: '/business/[id]/staff', params })}
         />
-        <MenuRow
-          icon="admin"
-          title="Manage Admins"
-          subtitle="Who can log in to this business"
-          active={at('/admins')}
-                onPress={() => go({ pathname: '/business/[id]/admins', params })}
-        />
+        {/* Only the owner sees and manages who can log in. */}
+        {account.access?.is_owner ? (
+          <MenuRow
+            icon="admin"
+            title="Manage Admins"
+            subtitle="Who can log in to this business"
+            active={at('/admins')}
+            onPress={() => go({ pathname: '/business/[id]/admins', params })}
+          />
+        ) : null}
       </Section>
 
       <Section title="Reports">
