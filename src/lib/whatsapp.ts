@@ -31,6 +31,13 @@ export function memberMessage(member: Member, gymName: string) {
   return `Hi ${name}, `;
 }
 
+/** Worth a reminder: they owe money, or their plan ends within a week or has ended. */
+export function needsReminder(member: Member) {
+  if (!member.phone) return false;
+  if (Number(member.total_due) > 0) return true;
+  return member.membership ? daysUntil(member.membership.end_date) <= 7 : false;
+}
+
 /** Opens WhatsApp with a chat to the member and the message typed in, ready to send. */
 export function openWhatsApp(phone: string, message: string) {
   return Linking.openURL(`https://wa.me/91${phone}?text=${encodeURIComponent(message)}`);

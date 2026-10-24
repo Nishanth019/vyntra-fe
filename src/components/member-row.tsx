@@ -6,7 +6,9 @@ import { Icon } from '@/components/ui/icon';
 import { Radius, shadow, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { Member } from '@/lib/api';
+import { useBusiness } from '@/lib/business';
 import { formatMoney, initials, memberName } from '@/lib/format';
+import { memberMessage, needsReminder, openWhatsApp } from '@/lib/whatsapp';
 
 type PersonRowProps = {
   name: string;
@@ -59,8 +61,12 @@ export function PersonRow({ name, details, alert, badge, trailing, muted = false
   );
 }
 
-export function MemberRow({ member, onPress }: { member: Member; onPress?: () => void }) {
+const WHATSAPP_GREEN = '#25D366';
+
+/** `whatsapp` adds a one-tap WhatsApp reminder for members who owe money or whose plan is ending or ended. */
+export function MemberRow({ member, onPress, whatsapp = false }: { member: Member; onPress?: () => void; whatsapp?: boolean }) {
   const status = membershipStatus(member);
+  const { account } = useBusiness();
 
   return (
     <PersonRow
@@ -72,12 +78,32 @@ export function MemberRow({ member, onPress }: { member: Member; onPress?: () =>
       alert={Number(member.total_due) > 0 ? `Due ${formatMoney(member.total_due)}` : undefined}
       badge={<StatusPill {...status} />}
       muted={status.tone === 'neutral'}
+      trailing={
+        whatsapp && needsReminder(member) ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`WhatsApp ${memberName(member)}`}
+            hitSlop={8}
+            onPress={() => openWhatsApp(member.phone!, memberMessage(member, account.name))}
+            style={({ pressed }) => [styles.whatsapp, pressed && styles.pressed]}>
+            <Icon name="chat" color="#FFFFFF" size={20} />
+          </Pressable>
+        ) : undefined
+      }
       onPress={onPress}
     />
   );
 }
 
 const styles = StyleSheet.create({
+  whatsapp: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: WHATSAPP_GREEN,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

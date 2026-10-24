@@ -207,6 +207,7 @@ export default function MembersScreen() {
           keyExtractor={(member) => String(member.id)}
           renderItem={({ item }) => (
             <MemberRow
+              whatsapp
               member={item}
               onPress={() =>
                 router.push({
