@@ -1,15 +1,16 @@
 import { router } from 'expo-router';
-import { useCallback } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { SubscriptionBanner } from '@/components/subscription-banner';
 import { TabHeader } from '@/components/tab-header';
 import { Button } from '@/components/ui/button';
+import { Chip } from '@/components/ui/chip';
 import { ErrorBanner } from '@/components/ui/error-banner';
 import { HeaderButton } from '@/components/ui/header-button';
 import { Icon } from '@/components/ui/icon';
-import { Screen } from '@/components/ui/screen';
 import { EmptyState, LoadingState } from '@/components/ui/states';
+import { TextField } from '@/components/ui/text-field';
 import { PageWidth, Radius, shadow, Spacing } from '@/constants/theme';
 import { useResource } from '@/hooks/use-resource';
 import { useTheme } from '@/hooks/use-theme';
@@ -25,68 +26,148 @@ export default function RoomsScreen() {
   return isPg(account) ? <PgRooms /> : <EmptyState icon="bed" title="Rooms are for PGs" />;
 }
 
+const ALL = '__all__';
+
+/** "Floor 1", "Ground" or the floor as typed; rooms without one are "No floor". */
+function floorLabel(floor: string) {
+  if (!floor) return 'No floor';
+  return /^\d+$/.test(floor) ? `Floor ${floor}` : floor;
+}
+
+/** Ground first, then numbered floors in order, then the rest A–Z. */
+function floorOrder(floor: string) {
+  if (/^(g|ground|gf|0)$/i.test(floor)) return [0, 0, ''];
+  if (/^\d+$/.test(floor)) return [1, Number(floor), ''];
+  return [floor ? 2 : 3, 0, floor.toLowerCase()];
+}
+
+function compareFloors(a: string, b: string) {
+  const [x, y] = [floorOrder(a), floorOrder(b)];
+  return (x[0] as number) - (y[0] as number) || (x[1] as number) - (y[1] as number) || String(x[2]).localeCompare(String(y[2]));
+}
+
 function PgRooms() {
+  const theme = useTheme();
   const { account } = useBusiness();
-  const wide = useWideLayout();
+  const page = useWideLayout()
+    ? ({ width: '100%', maxWidth: PageWidth.desktop + 40, alignSelf: 'center' } as const)
+    : null;
   const fetchRooms = useCallback(() => api.pgRooms(account.id).then(({ results }) => results), [account.id]);
   const { data: rooms, error, refreshing, refresh, retry } = useResource(fetchRooms);
+  const [floor, setFloor] = useState(ALL);
+  const [freeOnly, setFreeOnly] = useState(false);
+  const [search, setSearch] = useState('');
   const params = { id: account.id };
   const addRoom = () => router.push({ pathname: '/business/[id]/pg/rooms/new', params });
 
-  const beds = rooms?.flatMap((room) => room.beds) ?? [];
+  const floorOf = (room: PgRoom) => room.floor?.trim() ?? '';
+  const floors = [...new Set((rooms ?? []).map(floorOf))].sort(compareFloors);
+  // A floor that no longer has rooms (e.g. its last room was removed) falls back to all floors.
+  const selected = floor === ALL || floors.includes(floor) ? floor : ALL;
+  const query = search.trim().toLowerCase();
+  const shown = (rooms ?? []).filter(
+    (room) =>
+      (selected === ALL || floorOf(room) === selected) &&
+      (!freeOnly || room.beds.some((bed) => !bed.occupant)) &&
+      (!query ||
+        room.room_number.toLowerCase().includes(query) ||
+        room.beds.some((bed) => bed.occupant?.name.toLowerCase().includes(query))),
+  );
+  const beds = shown.flatMap((room) => room.beds);
   const free = beds.filter((bed) => !bed.occupant).length;
-
-  // Rooms grouped by floor, in the order the server sorted them.
-  const floors = new Map<string, PgRoom[]>();
-  for (const room of rooms ?? []) {
-    const floor = room.floor?.trim() || '';
-    floors.set(floor, [...(floors.get(floor) ?? []), room]);
-  }
+  const allFree = (rooms ?? []).flatMap((room) => room.beds).filter((bed) => !bed.occupant).length;
 
   return (
     <>
       <TabHeader
         title="Rooms"
-        subtitle={rooms ? `${beds.length} beds · ${free} free` : 'Beds and who is on them'}
+        subtitle="Beds and who is on them"
         action={<HeaderButton icon="add" label="Add room" filled onPress={addRoom} />}
       />
       {!rooms ? (
         <LoadingState error={error} onRetry={retry} />
       ) : (
-        <Screen onRefresh={refresh} refreshing={refreshing} maxWidth={wide ? PageWidth.desktop : PageWidth.phone}>
-          <SubscriptionBanner />
-          {error ? <ErrorBanner message={error} /> : null}
-          {rooms.length === 0 ? (
-            <EmptyState
-              icon="bed"
-              title="No rooms yet"
-              message="Add your rooms with how many beds each has. Then move tenants in, bed by bed."
-              action={<Button title="Add Room" icon="add" onPress={addRoom} />}
-            />
-          ) : (
-            [...floors.entries()].map(([floor, floorRooms]) => (
-              <View key={floor} style={styles.floor}>
-                {floors.size > 1 || floor ? <FloorTitle floor={floor} /> : null}
-                <View style={[styles.grid, wide && styles.gridWide]}>
-                  {floorRooms.map((room) => (
-                    <View key={room.id} style={wide ? styles.cellWide : null}>
-                      <RoomCard room={room} />
-                    </View>
-                  ))}
-                </View>
-              </View>
-            ))
-          )}
-        </Screen>
+        <>
+          <View style={[styles.search, page]}>
+            <SubscriptionBanner />
+            {rooms.length ? (
+              <TextField
+                label="Search rooms"
+                hideLabel
+                icon="search"
+                placeholder="Search room number or tenant"
+                value={search}
+                onChangeText={setSearch}
+                autoCapitalize="none"
+                returnKeyType="search"
+              />
+            ) : null}
+          </View>
+          {rooms.length ? (
+            <ScrollView
+              horizontal={!page}
+              scrollEnabled={!page}
+              showsHorizontalScrollIndicator={false}
+              style={[styles.filtersScroll, page]}
+              contentContainerStyle={[styles.filters, page && styles.filtersWrap]}>
+              <Chip pill label="All floors" count={rooms.length} selected={selected === ALL} onPress={() => setFloor(ALL)} />
+              {floors.map((item) => (
+                <Chip
+                  key={item || 'none'}
+                  pill
+                  label={floorLabel(item)}
+                  count={rooms.filter((room) => floorOf(room) === item).length}
+                  selected={selected === item}
+                  onPress={() => setFloor(item)}
+                />
+              ))}
+              <Chip pill label="Free beds" count={allFree} selected={freeOnly} onPress={() => setFreeOnly(!freeOnly)} />
+            </ScrollView>
+          ) : null}
+
+          <FlatList
+            data={shown}
+            keyExtractor={(room) => String(room.id)}
+            renderItem={({ item }) => <RoomCard room={item} />}
+            contentContainerStyle={[styles.list, page]}
+            keyboardShouldPersistTaps="handled"
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={theme.primary} />}
+            ListHeaderComponent={
+              <>
+                {error ? <ErrorBanner message={error} /> : null}
+                {shown.length ? (
+                  <View style={[styles.summary, { backgroundColor: theme.primarySoft }]}>
+                    <Text style={[styles.summaryTitle, { color: theme.primary }]}>
+                      {selected === ALL ? 'All floors' : floorLabel(selected)}
+                    </Text>
+                    <Text style={[styles.summaryText, { color: theme.primary }]}>
+                      {shown.length} room{shown.length === 1 ? '' : 's'} · {beds.length} beds · {free} free
+                    </Text>
+                  </View>
+                ) : null}
+              </>
+            }
+            ListEmptyComponent={
+              rooms.length === 0 ? (
+                <EmptyState
+                  icon="bed"
+                  title="No rooms yet"
+                  message="Add your rooms with how many beds each has. Then move tenants in, bed by bed."
+                  action={<Button title="Add Room" icon="add" onPress={addRoom} />}
+                />
+              ) : (
+                <EmptyState
+                  icon="bed"
+                  title={freeOnly ? 'No free beds here' : 'No rooms found'}
+                  message={query ? `Nothing matches "${search.trim()}".` : undefined}
+                />
+              )
+            }
+          />
+        </>
       )}
     </>
   );
-}
-
-function FloorTitle({ floor }: { floor: string }) {
-  const theme = useTheme();
-  const label = !floor ? 'Other rooms' : /^\d+$/.test(floor) ? `Floor ${floor}` : floor;
-  return <Text style={[styles.floorTitle, { color: theme.text }]}>{label}</Text>;
 }
 
 function RoomCard({ room }: { room: PgRoom }) {
@@ -106,7 +187,9 @@ function RoomCard({ room }: { room: PgRoom }) {
         <View style={styles.flex}>
           <Text style={[styles.roomName, { color: theme.text }]}>Room {room.room_number}</Text>
           <Text style={[styles.roomMeta, { color: theme.textSecondary }]}>
-            {[room.is_ac ? 'AC' : 'Non-AC', `${formatMoney(room.rent_per_bed)}/bed`].join(' · ')}
+            {[room.floor?.trim() ? floorLabel(room.floor.trim()) : null, room.is_ac ? 'AC' : 'Non-AC', `${formatMoney(room.rent_per_bed)}/bed`]
+              .filter(Boolean)
+              .join(' · ')}
           </Text>
         </View>
         <Text style={[styles.free, { color: free ? theme.success : theme.textSecondary }]}>
@@ -164,23 +247,48 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
-  floor: {
+  search: {
     gap: Spacing.three - 4,
+    paddingHorizontal: Spacing.three + 4,
+    paddingTop: Spacing.two,
   },
-  floorTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    marginTop: Spacing.one,
+  filtersScroll: {
+    flexGrow: 0,
+    flexShrink: 0,
   },
-  grid: {
-    gap: Spacing.three - 4,
-  },
-  gridWide: {
+  filtersWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
-  cellWide: {
-    width: '49%',
+  filters: {
+    gap: Spacing.two,
+    paddingHorizontal: Spacing.three + 4,
+    paddingVertical: Spacing.three,
+  },
+  list: {
+    flexGrow: 1,
+    gap: Spacing.three - 4,
+    paddingHorizontal: Spacing.three + 4,
+    paddingTop: Spacing.two,
+    paddingBottom: Spacing.six,
+  },
+  summary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.two,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.three - 4,
+    borderRadius: Radius.md,
+    marginBottom: Spacing.one,
+  },
+  summaryTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  summaryText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   card: {
     borderWidth: StyleSheet.hairlineWidth,
