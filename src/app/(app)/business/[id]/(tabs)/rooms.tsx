@@ -65,7 +65,9 @@ function PgRooms() {
   // A floor that no longer has rooms (e.g. its last room was removed) falls back to all floors.
   const selected = floor === ALL || floors.includes(floor) ? floor : ALL;
   const query = search.trim().toLowerCase();
-  const shown = (rooms ?? []).filter(
+  const shown = [...(rooms ?? [])]
+    .sort((a, b) => compareFloors(floorOf(a), floorOf(b)) || a.room_number.localeCompare(b.room_number, undefined, { numeric: true }))
+    .filter(
     (room) =>
       (selected === ALL || floorOf(room) === selected) &&
       (!freeOnly || room.beds.some((bed) => !bed.occupant)) &&

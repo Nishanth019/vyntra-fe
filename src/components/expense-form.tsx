@@ -118,6 +118,8 @@ export function ExpenseForm({ expense, onSubmit, onDelete }: ExpenseFormProps) {
         <PaymentMethodPicker value={method} onChange={(value) => !locked && setMethod(value)} />
         <TextField label="Notes (Optional)" multiline maxLength={1000} editable={!locked} value={notes} onChangeText={setNotes} />
       </Card>
+      {/* Repeated by the button: on a long form the one at the top is out of sight. */}
+      {formError ? <ErrorBanner message={formError} /> : null}
       {locked ? null : (
         <Button title={expense ? 'Save Expense' : 'Add Expense'} icon="check" loading={submitting} onPress={submit} />
       )}

@@ -157,6 +157,8 @@ function CheckoutForm({ tenant }: { tenant: PgTenantProfile }) {
         {refund > 0 ? <PaymentMethodPicker value={method} onChange={setMethod} /> : null}
       </Card>
 
+      {/* Repeated by the button: on a long form the one at the top is out of sight. */}
+      {formError ? <ErrorBanner message={formError} /> : null}
       <Button title="Check Out" icon="logoutDoor" variant="destructive" loading={submitting} disabled={!preview} onPress={submit} />
     </Screen>
   );

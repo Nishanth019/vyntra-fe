@@ -147,6 +147,8 @@ function SettingsForm({ settings }: { settings: PgSettings }) {
         />
       </Card>
 
+      {/* Repeated by the button: on a long form the one at the top is out of sight. */}
+      {formError ? <ErrorBanner message={formError} /> : null}
       <Button title="Save" icon="check" loading={submitting} onPress={submit} />
     </Screen>
   );

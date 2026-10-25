@@ -51,6 +51,8 @@ function MoveInForm({ tenant, rooms, settings }: { tenant: PgTenantProfile; room
       {formError ? <ErrorBanner message={formError} /> : null}
       <TenantSummary tenant={tenant} />
       <StayFields values={stay} onChange={setStay} errors={errors} rooms={rooms} />
+      {/* Repeated by the button: on a long form the one at the top is out of sight. */}
+      {formError ? <ErrorBanner message={formError} /> : null}
       <Button title="Move In" icon="login" loading={submitting} onPress={submit} />
     </Screen>
   );

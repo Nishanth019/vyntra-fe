@@ -144,6 +144,8 @@ export function RoomForm({ room, onSubmit, onDelete }: RoomFormProps) {
         </View>
       </Card>
 
+      {/* Repeated by the button: on a long form the one at the top is out of sight. */}
+      {formError ? <ErrorBanner message={formError} /> : null}
       <Button title={room ? 'Save Room' : 'Add Room'} icon={room ? 'check' : 'add'} loading={submitting} onPress={submit} />
       {onDelete ? (
         <Button

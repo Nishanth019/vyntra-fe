@@ -266,6 +266,8 @@ export function TenantForm({ tenant, rooms, settings, bedId, onSubmit }: TenantF
         </View>
       </Card>
 
+      {/* Repeated by the button: on a long form the one at the top is out of sight. */}
+      {formError ? <ErrorBanner message={formError} /> : null}
       <Button title={tenant ? 'Save Changes' : 'Add Tenant'} icon={tenant ? 'check' : 'personAdd'} loading={submitting} onPress={submit} />
     </Screen>
   );
