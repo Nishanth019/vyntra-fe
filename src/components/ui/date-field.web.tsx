@@ -1,4 +1,4 @@
-import { createElement } from 'react';
+import { createElement, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Icon } from '@/components/ui/icon';
@@ -21,6 +21,19 @@ export function DateField({
   clearable = false,
 }: DateFieldProps) {
   const theme = useTheme();
+  const input = useRef<HTMLInputElement | null>(null);
+
+  // Browsers only open their calendar from a tiny icon inside the input; open it from anywhere on the field.
+  function openCalendar() {
+    const element = input.current;
+    if (!element) return;
+    element.focus();
+    try {
+      element.showPicker?.();
+    } catch {
+      // Some browsers refuse outside a direct click; typing the date still works.
+    }
+  }
 
   return (
     <View style={styles.container}>
@@ -35,19 +48,27 @@ export function DateField({
           </Pressable>
         ) : null}
       </View>
-      <View
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${label}: choose a date`}
+        onPress={openCalendar}
         style={[
           styles.field,
           { backgroundColor: theme.surface, borderColor: error ? theme.danger : theme.border },
         ]}>
         <Icon name="calendar" size={20} color={theme.textSecondary} />
         {createElement('input', {
+          ref: input,
           type: 'date',
           'aria-label': label,
           value,
           min: minimumDate ? toISODate(minimumDate) : undefined,
           max: maximumDate ? toISODate(maximumDate) : undefined,
           onChange: (event: { target: { value: string } }) => onChange(event.target.value),
+          onClick: (event: { stopPropagation: () => void }) => {
+            event.stopPropagation();
+            openCalendar();
+          },
           style: {
             flex: 1,
             minWidth: 0,
@@ -59,9 +80,10 @@ export function DateField({
             fontSize: 16,
             fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
             colorScheme: 'light dark',
+            cursor: 'pointer',
           },
         })}
-      </View>
+      </Pressable>
       {error ? <Text style={[styles.message, { color: theme.danger }]}>{error}</Text> : null}
       {!error && note ? <Text style={[styles.message, { color: theme.textSecondary }]}>{note}</Text> : null}
     </View>
