@@ -1,5 +1,5 @@
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 
 import { ApiError } from '@/lib/api';
 
@@ -11,17 +11,23 @@ export function useResource<T>(fetcher: () => Promise<T>) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  // The newest fetcher; answers to an older one (e.g. the month before a switch) are dropped.
+  const latest = useRef(fetcher);
+  useLayoutEffect(() => {
+    latest.current = fetcher;
+  }, [fetcher]);
 
   const load = useCallback(
     () =>
       fetcher().then(
         (result) => {
+          if (latest.current !== fetcher) return;
           setData(result);
           setError('');
         },
         (e) => {
           if (!(e instanceof ApiError)) throw e;
-          setError(e.message);
+          if (latest.current === fetcher) setError(e.message);
         },
       ),
     [fetcher],

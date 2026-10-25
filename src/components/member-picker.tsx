@@ -32,6 +32,8 @@ export function MemberPicker({ visible, onClose, onSelect, activeOnly = false }:
   useEffect(() => {
     if (!visible) return;
     const search = searchText.trim();
+    // A slower answer to an earlier search mustn't replace the newer one.
+    let stale = false;
     const timer = setTimeout(
       () => {
         api
@@ -42,18 +44,22 @@ export function MemberPicker({ visible, onClose, onSelect, activeOnly = false }:
           })
           .then(
             ({ results: members }) => {
+              if (stale) return;
               setResults(members);
               setError('');
             },
             (e) => {
               if (!(e instanceof ApiError)) throw e;
-              setError(e.message);
+              if (!stale) setError(e.message);
             },
           );
       },
       search ? 350 : 0,
     );
-    return () => clearTimeout(timer);
+    return () => {
+      stale = true;
+      clearTimeout(timer);
+    };
   }, [visible, searchText, account.id, activeOnly]);
 
   return (
