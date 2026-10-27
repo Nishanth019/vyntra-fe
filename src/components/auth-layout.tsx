@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BrandMark } from '@/components/ui/brand-mark';
 import { Gradient } from '@/components/ui/gradient';
 import { Icon } from '@/components/ui/icon';
 import { MaxFormWidth, Radius, shadow, Spacing } from '@/constants/theme';
@@ -14,7 +15,7 @@ import { POLICY_LINKS } from '@/lib/links';
 type AuthLayoutProps = PropsWithChildren<{
   title: string;
   subtitle: string;
-  /** Link to the other auth screen, e.g. "New to Vyntra? Create an account". */
+  /** Link to the other auth screen, e.g. "New to Manaze? Create an account". */
   footer: { prompt: string; linkLabel: string; href: Href };
 }>;
 
@@ -36,9 +37,9 @@ export function AuthLayout({ title, subtitle, footer, children }: AuthLayoutProp
           <View style={styles.brand}>
             <View style={[styles.logo, shadow(theme.primary, 3)]}>
               <Gradient from={theme.primary} to={theme.primaryEnd} />
-              <Text style={[styles.logoText, { color: theme.onPrimary }]}>V</Text>
+              <BrandMark color={theme.onPrimary} size={48} />
             </View>
-            <Text style={[styles.brandName, { color: theme.text }]}>Vyntra</Text>
+            <Text style={[styles.brandName, { color: theme.text }]}>Manaze</Text>
           </View>
 
           <View style={styles.heading}>
@@ -102,10 +103,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.two,
-  },
-  logoText: {
-    fontSize: 46,
-    fontWeight: '900',
   },
   brandName: {
     fontSize: 34,

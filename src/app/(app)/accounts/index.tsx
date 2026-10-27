@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { BrandMark } from '@/components/ui/brand-mark';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ErrorBanner } from '@/components/ui/error-banner';
@@ -73,7 +74,7 @@ function GetStartedCard({ typeName, onAdd }: { typeName: string; onAdd: () => vo
     <View style={[styles.hero, { backgroundColor: theme.surface, borderColor: theme.border }]}>
       <View style={[styles.heroTop, { backgroundColor: theme.primary }]}>
         <View style={[styles.heroLogo, { backgroundColor: theme.onPrimary }]}>
-          <Text style={[styles.heroLogoText, { color: theme.primary }]}>V</Text>
+          <BrandMark color={theme.primary} size={32} />
         </View>
         <View style={styles.heroText}>
           <Text style={[styles.heroTitle, { color: theme.onPrimary }]}>Manage Your {typeName}</Text>
@@ -122,10 +123,6 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  heroLogoText: {
-    fontSize: 28,
-    fontWeight: '800',
   },
   heroText: {
     flex: 1,

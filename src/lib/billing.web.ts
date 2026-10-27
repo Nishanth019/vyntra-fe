@@ -1,5 +1,5 @@
 /**
- * Buying a Vyntra plan on the website, with Razorpay Checkout (UPI AutoPay, cards, net banking).
+ * Buying a Manaze plan on the website, with Razorpay Checkout (UPI AutoPay, cards, net banking).
  * The app opens Razorpay's hosted payment page instead (billing.ts).
  */
 import { useEffect, useState } from 'react';
@@ -69,7 +69,7 @@ export function useCheckout(info: SubscriptionInfo | null, _adminId?: number): C
       new Razorpay({
         key: checkout.key_id,
         subscription_id: checkout.subscription_id,
-        name: 'Vyntra',
+        name: 'Manaze',
         description: `${plan.name} plan`,
         prefill: { name: checkout.name, email: checkout.email, contact: checkout.contact },
         theme: { color: Colors.light.primary },

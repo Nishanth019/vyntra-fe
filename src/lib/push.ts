@@ -41,7 +41,7 @@ export async function registerForPush(): Promise<{ token?: string; problem?: str
   }
   const existing = await Notifications.getPermissionsAsync();
   const granted = existing.granted || (await Notifications.requestPermissionsAsync()).granted;
-  if (!granted) return { problem: 'Notifications are turned off for Vyntra. Allow them in your phone settings.' };
+  if (!granted) return { problem: 'Notifications are turned off for Manaze. Allow them in your phone settings.' };
 
   const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
   const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId });

@@ -70,7 +70,7 @@ export default function ImportMembersScreen() {
 
   return (
     <Screen>
-      <Card title="Import members from Excel" subtitle="Move your whole register into Vyntra in one go." tone="accent">
+      <Card title="Import members from Excel" subtitle="Move your whole register into Manaze in one go." tone="accent">
         <Step number={1} text="Add your membership plans first. The Plan column must match a plan name, e.g. Monthly." />
         <Step number={2} text="Download the template, or use your own sheet with the same column headings." />
         <Step number={3} text="Fill one member per row and save as Excel (.xlsx) or CSV, then choose the file below." />

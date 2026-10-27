@@ -65,7 +65,7 @@ export default function SignupScreen() {
   return (
     <AuthLayout
       title="Create your account"
-      subtitle="Set up Vyntra and start managing your members in minutes."
+      subtitle="Set up Manaze and start managing your members in minutes."
       footer={{ prompt: 'Already have an account?', linkLabel: 'Log in', href: '/login' }}>
       {formError ? <ErrorBanner message={formError} /> : null}
 

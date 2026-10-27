@@ -18,7 +18,7 @@ export default function AppearanceScreen() {
   const preference = useThemePreference();
 
   return (
-    <Screen title="Theme" subtitle="Choose how Vyntra looks on this device.">
+    <Screen title="Theme" subtitle="Choose how Manaze looks on this device.">
       {OPTIONS.map((option) => {
         const selected = option.value === preference;
         return (

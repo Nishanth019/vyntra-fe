@@ -49,7 +49,7 @@ export default function LoginScreen() {
     <AuthLayout
       title="Welcome back"
       subtitle="Log in to manage your business"
-      footer={{ prompt: 'New to Vyntra?', linkLabel: 'Create an account', href: '/signup' }}>
+      footer={{ prompt: 'New to Manaze?', linkLabel: 'Create an account', href: '/signup' }}>
       {formError ? <ErrorBanner message={formError} /> : null}
 
       <TextField

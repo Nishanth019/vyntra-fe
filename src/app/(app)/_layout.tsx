@@ -19,7 +19,7 @@ export default function AppLayout() {
     <SubscriptionProvider>
       <StatusBar style="auto" />
       <Stack screenOptions={stackOptions}>
-        <Stack.Screen name="index" options={{ title: 'Vyntra', headerRight: logout }} />
+        <Stack.Screen name="index" options={{ title: 'Manaze', headerRight: logout }} />
         <Stack.Screen name="accounts/index" options={{ title: 'Your Organisations', headerRight: logout }} />
         <Stack.Screen name="accounts/new" options={{ title: 'Add Organisation' }} />
         <Stack.Screen name="profile" options={{ title: 'My Profile' }} />

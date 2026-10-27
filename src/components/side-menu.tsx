@@ -357,7 +357,7 @@ function MenuPanel({ onClose = () => {} }: { onClose?: () => void }) {
         styles.footer,
         { color: theme.textSecondary, borderColor: theme.border, paddingBottom: insets.bottom + Spacing.three },
       ]}>
-      Vyntra · v{Constants.expoConfig?.version}
+      Manaze · v{Constants.expoConfig?.version}
     </Text>
     </>
   );

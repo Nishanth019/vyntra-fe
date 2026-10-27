@@ -53,7 +53,7 @@ const FAQS = [
 
 export default function HelpScreen() {
   return (
-    <Screen title="Need help?" subtitle="Answers to common questions about using Vyntra.">
+    <Screen title="Need help?" subtitle="Answers to common questions about using Manaze.">
       <View style={styles.list}>
         {FAQS.map((faq) => (
           <FaqItem key={faq.question} {...faq} />

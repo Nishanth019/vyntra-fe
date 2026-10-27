@@ -1,5 +1,5 @@
 /**
- * Buying a Vyntra plan in the app, on Razorpay's hosted payment page (UPI AutoPay, cards, net banking).
+ * Buying a Manaze plan in the app, on Razorpay's hosted payment page (UPI AutoPay, cards, net banking).
  * The page opens in an in-app browser; when the buyer comes back, the backend reads the subscription from Razorpay
  * (the webhook confirms it again). The website version, billing.web.ts, uses Razorpay Checkout instead.
  */

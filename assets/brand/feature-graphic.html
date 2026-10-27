@@ -1,0 +1,24 @@
+<!doctype html><meta charset="utf-8">
+<style>
+  html,body{margin:0;width:1024px;height:500px;overflow:hidden}
+  body{background:linear-gradient(120deg,#2563EB 0%,#5B5BF0 100%);font-family:-apple-system,"SF Pro Display","Helvetica Neue",Arial,sans-serif;color:#fff;position:relative}
+  .glow{position:absolute;right:-120px;top:-160px;width:560px;height:560px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.16),rgba(255,255,255,0) 70%)}
+  .row{position:absolute;inset:0;display:flex;align-items:center;gap:56px;padding:0 80px}
+  .tile{width:210px;height:210px;border-radius:48px;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 24px 48px rgba(16,24,80,.35);flex:none}
+  h1{margin:0;font-size:96px;font-weight:800;letter-spacing:-3px;line-height:1}
+  p{margin:14px 0 26px;font-size:32px;font-weight:500;opacity:.95}
+  .chips{display:flex;gap:12px;flex-wrap:wrap}
+  .chips span{background:rgba(255,255,255,.18);border-radius:999px;padding:9px 20px;font-size:22px;font-weight:700}
+</style>
+<div class="glow"></div>
+<div class="row">
+  <div class="tile">
+    <svg width="130" height="135" viewBox="22 21 56 58"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2563EB"/><stop offset="1" stop-color="#5B5BF0"/></linearGradient></defs>
+    <path d="M28 73 V45 L45 62 L72 27 V73" fill="none" stroke="url(#g)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+  <div>
+    <h1>Manaze</h1>
+    <p>Run your gym or PG from your phone</p>
+    <div class="chips"><span>Members</span><span>Dues</span><span>Attendance</span><span>PG rent</span></div>
+  </div>
+</div>

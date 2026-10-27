@@ -69,7 +69,7 @@ function DeleteAccount({ onDeleted }: { onDeleted: () => void }) {
         </View>
         <View style={styles.flex}>
           <Text style={[styles.dangerTitle, { color: theme.text }]}>Delete Account</Text>
-          <Text style={[styles.email, { color: theme.textSecondary }]}>Permanently delete your Vyntra login.</Text>
+          <Text style={[styles.email, { color: theme.textSecondary }]}>Permanently delete your Manaze login.</Text>
         </View>
       </View>
       {error ? <ErrorBanner message={error} /> : null}
@@ -88,7 +88,7 @@ function DeleteAccount({ onDeleted }: { onDeleted: () => void }) {
 
 function ProfileHeader({ admin }: { admin: Admin }) {
   const theme = useTheme();
-  // Owner of at least one business (they pay for Vyntra), otherwise an admin added by an owner.
+  // Owner of at least one business (they pay for Manaze), otherwise an admin added by an owner.
   const ownsBusiness = useSubscription().subscription?.owns_business ?? false;
 
   return (

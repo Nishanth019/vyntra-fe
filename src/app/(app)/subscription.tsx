@@ -66,7 +66,7 @@ function day(value: string | null) {
 
 function StatusHero({ subscription: s }: { subscription: SubscriptionInfo }) {
   const theme = useTheme();
-  const planName = s.plan ? `${s.plan.name} plan` : 'Vyntra';
+  const planName = s.plan ? `${s.plan.name} plan` : 'Manaze';
 
   const content = {
     TRIAL: {
