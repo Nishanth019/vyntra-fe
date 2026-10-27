@@ -13,13 +13,15 @@
       "android": {
         "buildType": "apk"
       },
-      "environment": "preview"
+      "environment": "preview",
+      "credentialsSource": "local"
     },
     "production": {
       "environment": "production",
       "android": {
         "buildType": "app-bundle"
-      }
+      },
+      "credentialsSource": "local"
     }
   },
   "submit": {

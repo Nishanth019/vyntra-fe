@@ -8,11 +8,11 @@
     "scheme": "vyntrafe",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "bundleIdentifier": "com.vyntra.app",
+      "bundleIdentifier": "com.manaze.app",
       "icon": "./assets/images/icon.png"
     },
     "android": {
-      "package": "com.vyntra.app",
+      "package": "com.manaze.app",
       "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#2563EB",

@@ -48,3 +48,6 @@ google-services.json
 
 # Local APK builds
 builds/
+
+# Local Play upload key config (keystore lives in ../manaze-secrets)
+credentials.json
