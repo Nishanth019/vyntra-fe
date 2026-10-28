@@ -76,7 +76,8 @@ Your data stays private: each organisation's data is visible only to its own adm
 **Graphics**
 - App icon: `icon-512.png` (512×512 PNG, the Manaze rising M).
 - Feature graphic: `feature-graphic-1024x500.png`. Sources for every icon are in `assets/brand/`.
-- Phone screenshots: 4–8 from your phone (Home, Members, Member profile, Record payment, Insights, Attendance). Use the demo account so no real member's phone number shows.
+- Phone screenshots: `screenshots/*-1080x1920.png` (Home, Members, Dues, Member profile, Record payment, Attendance, Insights), taken on a phone with the demo account. Play needs 9:16; phone captures are 720×1600, so the status bar is cut and the image is scaled and centred on a 1080×1920 #0B1020 canvas.
+- AI asset declaration: icon and feature graphic are labelled as AI-made; screenshots are not.
 
 **Category**: Business · **Tags**: Business management, Productivity
 **Contact email**: bhukyanishanth69@gmail.com · **Phone**: +91 91214 18845 (optional)
