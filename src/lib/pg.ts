@@ -54,7 +54,7 @@ export function billStatus(bill: Pick<PgBill, 'status' | 'is_overdue'>): { label
 export const ID_TYPES = [
   { value: 'AADHAAR', label: 'Aadhaar' },
   { value: 'PAN', label: 'PAN' },
-  { value: 'DL', label: 'Driving licence' },
+  { value: 'DL', label: 'Licence' },  // "Driving licence" didn't fit a third of a phone row
   { value: 'PASSPORT', label: 'Passport' },
   { value: 'VOTER', label: 'Voter ID' },
 ];

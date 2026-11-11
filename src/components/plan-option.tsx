@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -11,10 +11,15 @@ type PlanOptionsProps = {
   onChange: (planId: number) => void;
 };
 
-/** Plans to choose from, two per row: radio, name, duration and price. */
+/**
+ * Plans to choose from: radio, name, duration and price. One per row on phones (price on the right, so long plan
+ * names and five-digit prices are never cut off), two per row on wider screens.
+ */
 export function PlanOptions({ plans, value, onChange }: PlanOptionsProps) {
+  const { width } = useWindowDimensions();
+  const perRow = width >= 600 ? 2 : 1;
   const rows: MembershipPlan[][] = [];
-  for (let i = 0; i < plans.length; i += 2) rows.push(plans.slice(i, i + 2));
+  for (let i = 0; i < plans.length; i += perRow) rows.push(plans.slice(i, i + perRow));
 
   return (
     <View style={styles.grid}>
@@ -23,7 +28,7 @@ export function PlanOptions({ plans, value, onChange }: PlanOptionsProps) {
           {row.map((plan) => (
             <PlanOption key={plan.id} plan={plan} selected={plan.id === value} onPress={() => onChange(plan.id)} />
           ))}
-          {row.length === 1 ? <View style={styles.flex} /> : null}
+          {row.length < perRow ? <View style={styles.flex} /> : null}
         </View>
       ))}
     </View>
@@ -55,10 +60,8 @@ function PlanOption({ plan, selected, onPress }: { plan: MembershipPlan; selecte
         <Text style={[styles.meta, { color: theme.textSecondary }]} numberOfLines={1}>
           {formatDuration(plan.duration_value, plan.duration_type)}
         </Text>
-        <Text style={[styles.amount, { color: theme.text }]} numberOfLines={1} adjustsFontSizeToFit>
-          {formatMoney(plan.amount)}
-        </Text>
       </View>
+      <Text style={[styles.amount, { color: theme.text }]}>{formatMoney(plan.amount)}</Text>
     </Pressable>
   );
 }
@@ -74,6 +77,7 @@ const styles = StyleSheet.create({
   option: {
     flex: 1,
     flexDirection: 'row',
+    alignItems: 'center',
     gap: Spacing.two + 2,
     padding: Spacing.three - 2,
     borderWidth: 1.5,
@@ -85,7 +89,6 @@ const styles = StyleSheet.create({
   radio: {
     width: 22,
     height: 22,
-    marginTop: 1,
     borderRadius: Radius.full,
     borderWidth: 2,
     alignItems: 'center',
@@ -104,9 +107,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   amount: {
+    flexShrink: 0,
     fontSize: 18,
     fontWeight: '800',
-    marginTop: Spacing.one,
   },
   flex: {
     flex: 1,

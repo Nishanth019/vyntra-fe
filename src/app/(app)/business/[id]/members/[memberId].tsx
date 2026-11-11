@@ -105,7 +105,7 @@ function GymMemberProfile() {
       ? [{ label: 'Email Address', value: member.email, icon: 'mail' as const, onPress: () => Linking.openURL(`mailto:${member.email}`) }]
       : []),
     ...(member.date_of_birth ? [{ label: 'Date of Birth', value: formatDate(member.date_of_birth), icon: 'calendar' as const }] : []),
-    ...(member.gender ? [{ label: 'Gender', value: member.gender, icon: 'person' as const }] : []),
+    ...(member.gender ? [{ label: 'Gender', value: member.gender.charAt(0).toUpperCase() + member.gender.slice(1).toLowerCase(), icon: 'person' as const }] : []),
     ...(emergency ? [{ label: 'Emergency Contact', value: emergency, icon: 'support' as const }] : []),
     ...(member.gym_details?.emergency_contact_address
       ? [{ label: 'Address', value: member.gym_details.emergency_contact_address, icon: 'location' as const }]
@@ -154,7 +154,7 @@ function GymMemberProfile() {
                 pressed && styles.pressed,
               ]}>
               <View style={[styles.quickIcon, { backgroundColor: theme.primarySoft }]}>
-                <Icon name={action.icon} color={theme.primary} size={24} />
+                <Icon name={action.icon} color={theme.primary} size={20} />
               </View>
               <Text style={[styles.quickText, { color: theme.text }]} numberOfLines={2}>
                 {action.title}
@@ -248,31 +248,35 @@ const styles = StyleSheet.create({
     marginTop: Spacing.two,
     marginBottom: -Spacing.one,
   },
+  // Two per row, icon beside the label, so "Attendance History" never breaks mid-word on a narrow phone.
   quickRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: Spacing.two + 2,
   },
   quick: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: '45%',
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.two,
-    paddingVertical: Spacing.three,
-    paddingHorizontal: Spacing.one,
+    gap: Spacing.two + 2,
+    paddingVertical: Spacing.two + 4,
+    paddingHorizontal: Spacing.two + 4,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: Radius.lg,
   },
   quickIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
   quickText: {
-    fontSize: 13,
+    flexShrink: 1,
+    fontSize: 14,
     fontWeight: '600',
-    textAlign: 'center',
-    lineHeight: 17,
+    lineHeight: 18,
   },
   pressed: {
     opacity: 0.7,

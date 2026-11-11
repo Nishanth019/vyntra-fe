@@ -62,7 +62,10 @@ export function MemberForm({
     emergency_contact_phone: member?.gym_details?.emergency_contact_phone ?? '',
     emergency_contact_address: member?.gym_details?.emergency_contact_address ?? '',
   });
-  const [gender, setGender] = useState(member?.gender ?? '');
+  // Imports and older API clients may have saved "MALE" / "male"; match the chip values ("Male").
+  const [gender, setGender] = useState(
+    GENDERS.find((option) => option.value.toLowerCase() === (member?.gender ?? '').toLowerCase())?.value ?? member?.gender ?? '',
+  );
   const [planId, setPlanId] = useState<number | null>(null);
   const [discount, setDiscount] = useState('');
   // New members usually pay when they join.
@@ -265,6 +268,7 @@ export function MemberForm({
                 <Chip
                   label={option.value}
                   icon={option.icon}
+                  stacked
                   selected={gender === option.value}
                   onPress={() => setGender(gender === option.value ? '' : option.value)}
                 />

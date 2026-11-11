@@ -113,13 +113,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.two,
+    gap: Spacing.one + 2,
     height: 48,
     paddingHorizontal: Spacing.two,
     borderRadius: Radius.md,
   },
   heroButtonText: {
-    fontSize: 15,
+    flexShrink: 1,
+    fontSize: 14,
     fontWeight: '700',
   },
   sectionRow: {

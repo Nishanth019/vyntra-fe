@@ -167,6 +167,7 @@ export function TenantForm({ tenant, rooms, settings, bedId, onSubmit }: TenantF
               <Chip
                 label={option.value}
                 icon={option.icon}
+                stacked
                 selected={gender === option.value}
                 onPress={() => setGender(gender === option.value ? '' : option.value)}
               />
@@ -189,7 +190,7 @@ export function TenantForm({ tenant, rooms, settings, bedId, onSubmit }: TenantF
           />
           <View style={styles.chips}>
             {BILLING_CYCLES.map((cycle) => (
-              <View key={cycle.months} style={styles.chip}>
+              <View key={cycle.months} style={styles.halfChip}>
                 <Chip
                   label={cycle.label}
                   selected={terms.cycle === cycle.months}
@@ -288,6 +289,11 @@ const styles = StyleSheet.create({
   },
   chip: {
     flexBasis: '30%',
+    flexGrow: 1,
+  },
+  // Billing cycles two per row, like the move-in form ("Half-yearly" doesn't fit a third of a phone row).
+  halfChip: {
+    flexBasis: '45%',
     flexGrow: 1,
   },
 });

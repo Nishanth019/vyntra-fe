@@ -18,6 +18,7 @@ export function PaymentMethodPicker({ value, onChange }: { value: string; onChan
             <Chip
               label={method.label}
               icon={method.icon}
+              stacked
               selected={value === method.value}
               onPress={() => onChange(method.value)}
             />

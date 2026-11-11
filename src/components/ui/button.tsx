@@ -38,6 +38,7 @@ export function Button({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={title}
       accessibilityState={{ disabled: disabled || loading, busy: loading }}
       disabled={disabled || loading}
       style={(state) => [
@@ -58,7 +59,7 @@ export function Button({
       ) : (
         <>
           {icon ? <Icon name={icon} color={iconColor} size={20} /> : null}
-          <Text style={[styles.title, { color: colors.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+          <Text style={[styles.title, { color: colors.text }]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.85}>
             {title}
           </Text>
           {trailingIcon ? <Icon name={trailingIcon} color={iconColor} size={20} /> : null}
@@ -72,12 +73,12 @@ const styles = StyleSheet.create({
   button: {
     height: 54,
     flexDirection: 'row',
-    gap: Spacing.two,
+    gap: Spacing.one + 2,
     borderWidth: 1,
     borderRadius: Radius.md + 2,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: Spacing.three,
+    paddingHorizontal: Spacing.two + 4,
   },
   fill: {
     position: 'absolute',
@@ -94,6 +95,8 @@ const styles = StyleSheet.create({
   title: {
     flexShrink: 1,
     fontSize: 16,
+    lineHeight: 19,
     fontWeight: '700',
+    textAlign: 'center',
   },
 });

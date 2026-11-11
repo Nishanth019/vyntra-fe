@@ -46,10 +46,12 @@ type OrganisationFormProps = {
   onSubmit: (input: BusinessAccountInput) => Promise<void>;
   /** Shown below the submit button, e.g. a danger zone. */
   footer?: ReactNode;
+  /** A PG / hostel: bed icon and "tenants" instead of the gym wording. */
+  pg?: boolean;
 };
 
 /** Create / edit form for a business account (organisation). */
-export function OrganisationForm({ account, submitLabel, onSubmit, footer }: OrganisationFormProps) {
+export function OrganisationForm({ account, submitLabel, onSubmit, footer, pg = false }: OrganisationFormProps) {
   const theme = useTheme();
   const initial = toValues(account);
   const [values, setValues] = useState(initial);
@@ -107,16 +109,16 @@ export function OrganisationForm({ account, submitLabel, onSubmit, footer }: Org
         <View style={styles.identity}>
           <View style={[styles.logo, shadow(theme.primary, 2)]}>
             <Gradient from={theme.primary} to={theme.primaryEnd} />
-            <Icon name="dumbbell" color={theme.onPrimary} size={34} />
+            <Icon name={pg ? 'bed' : 'dumbbell'} color={theme.onPrimary} size={34} />
           </View>
           <View style={styles.flex}>
             <Text style={[styles.name, { color: theme.text }]} numberOfLines={2}>
               {values.name.trim() || 'Your organisation'}
             </Text>
-            <Text style={[styles.tagline, { color: theme.textSecondary }]} numberOfLines={2}>
+            <Text style={[styles.tagline, { color: theme.textSecondary }]} numberOfLines={3}>
               {account
                 ? [account.business_type.name, values.city.trim()].filter(Boolean).join(' · ')
-                : 'These details appear on your dashboard and help members reach you.'}
+                : `These details appear on your dashboard and help ${pg ? 'tenants' : 'members'} reach you.`}
             </Text>
           </View>
         </View>
@@ -134,7 +136,7 @@ export function OrganisationForm({ account, submitLabel, onSubmit, footer }: Org
         />
       </Card>
 
-      <Card title="Location" subtitle="Where your members can find you.">
+      <Card title="Location" subtitle={`Where your ${pg ? 'tenants' : 'members'} can find you.`}>
         <TextField label="Home / Area / Street" placeholder="e.g. 100 Feet Road, Koramangala" {...field('address')} />
         <View style={styles.row}>
           <View style={styles.flex}>
@@ -159,7 +161,7 @@ export function OrganisationForm({ account, submitLabel, onSubmit, footer }: Org
         <TextField
           label="Email"
           icon="mail"
-          placeholder="hello@yourgym.com"
+          placeholder={pg ? 'hello@yourpg.com' : 'hello@yourgym.com'}
           autoCapitalize="none"
           keyboardType="email-address"
           {...field('email')}

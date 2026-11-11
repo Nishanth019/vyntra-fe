@@ -13,10 +13,12 @@ type ChipProps = {
   count?: number;
   /** Fully rounded, for filter rows; option groups use rounded squares. */
   pill?: boolean;
+  /** Icon above a smaller label, for rows of 3–4 options that must fit narrow phones (e.g. Cash / UPI / Card / Bank). */
+  stacked?: boolean;
 };
 
 /** A selectable option: solid brand color when selected, soft grey otherwise. */
-export function Chip({ label, selected, onPress, icon, count, pill = false }: ChipProps) {
+export function Chip({ label, selected, onPress, icon, count, pill = false, stacked = false }: ChipProps) {
   const theme = useTheme();
   const color = selected ? theme.onPrimary : theme.textSecondary;
 
@@ -24,10 +26,12 @@ export function Chip({ label, selected, onPress, icon, count, pill = false }: Ch
     <Pressable
       accessibilityRole="radio"
       accessibilityState={{ selected }}
+      accessibilityLabel={label}
       onPress={onPress}
       style={({ pressed }) => [
         styles.chip,
         pill && styles.pill,
+        stacked && styles.stacked,
         selected
           ? { backgroundColor: theme.primary, borderColor: theme.primary }
           : { backgroundColor: theme.surface, borderColor: theme.border },
@@ -35,7 +39,7 @@ export function Chip({ label, selected, onPress, icon, count, pill = false }: Ch
       ]}>
       {icon ? <Icon name={icon} color={selected ? theme.onPrimary : theme.text} size={18} /> : null}
       <Text
-        style={[styles.label, { color: selected ? theme.onPrimary : theme.text }]}
+        style={[styles.label, stacked && styles.stackedLabel, { color: selected ? theme.onPrimary : theme.text }]}
         numberOfLines={1}
         adjustsFontSizeToFit
         minimumFontScale={0.75}>
@@ -65,6 +69,17 @@ const styles = StyleSheet.create({
     minHeight: 42,
     borderRadius: Radius.full,
     paddingHorizontal: Spacing.three,
+  },
+  stacked: {
+    flexDirection: 'column',
+    gap: 2,
+    minHeight: 58,
+    paddingVertical: Spacing.one,
+    paddingHorizontal: Spacing.one,
+  },
+  stackedLabel: {
+    flexShrink: 0,
+    fontSize: 13,
   },
   pressed: {
     opacity: 0.75,

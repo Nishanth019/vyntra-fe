@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 
 import { OrganisationForm } from '@/components/organisation-form';
+import { isPg } from '@/lib/pg';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ErrorBanner } from '@/components/ui/error-banner';
@@ -37,6 +38,7 @@ export default function OrganisationSettingsScreen() {
   return (
     <OrganisationForm
       account={account}
+      pg={isPg(account)}
       submitLabel="Save Changes"
       onSubmit={async (input) => {
         setAccount(await api.updateBusinessAccount(account.id, input));
