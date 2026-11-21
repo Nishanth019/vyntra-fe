@@ -80,7 +80,7 @@ Your data stays private: each organisation's data is visible only to its own adm
 - AI asset declaration: icon and feature graphic are labelled as AI-made; screenshots are not.
 
 **Category**: Business · **Tags**: Business management, Productivity
-**Contact email**: bhukyanishanth69@gmail.com · **Phone**: +91 91214 18845 (optional)
+**Contact email**: support@manaze.online · **Phone**: +91 91214 18845 (optional)
 **Website**: https://vyntra-web-664iy.ondigitalocean.app
 
 ## App content (Policy → App content)

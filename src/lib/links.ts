@@ -1,5 +1,6 @@
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://vyntra-api-3ckz6.ondigitalocean.app/api/v1';
-const SITE_URL = API_URL.replace(/\/api\/v1\/?$/, '');
+const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://api.manaze.online/api/v1';
+// Public pages live on the main domain (api.manaze.online → manaze.online); other hosts are used as they are.
+const SITE_URL = API_URL.replace(/\/api\/v1\/?$/, '').replace('://api.manaze.online', '://manaze.online');
 
 /** Public pages served by the backend (needed for the Play Store listing too). */
 export const PRIVACY_POLICY_URL = `${SITE_URL}/privacy/`;
