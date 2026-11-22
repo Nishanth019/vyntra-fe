@@ -13,6 +13,7 @@ import { useResource } from '@/hooks/use-resource';
 import { useTheme } from '@/hooks/use-theme';
 import { api, ApiError, type MembershipPlan, type MembershipPlanInput } from '@/lib/api';
 import { formatDuration, formatMoney } from '@/lib/format';
+import { FieldError } from '@/components/ui/field-error';
 
 const fetchDurationTypes = () => api.durationTypes().then(({ results }) => results);
 
@@ -123,9 +124,7 @@ export function PlanForm({ plan, onSubmit }: PlanFormProps) {
             </View>
           ))}
         </View>
-        {errors.duration_type_id ? (
-          <Text style={[styles.error, { color: theme.danger }]}>{errors.duration_type_id}</Text>
-        ) : null}
+        <FieldError message={errors.duration_type_id} />
         <TextField
           label={`Duration (${selectedType?.name ?? 'units'})`}
           required

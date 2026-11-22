@@ -90,7 +90,7 @@ export function TenantForm({ tenant, rooms, settings, bedId, onSubmit }: TenantF
     setStayErrors(nextStay);
     setFormError('');
     if (Object.keys(next).length || Object.keys(nextStay).length) {
-      setFormError('Please fix the highlighted fields.');
+      setFormError(nextStay.paid_until ?? 'Please fix the highlighted fields.');
       return;
     }
 

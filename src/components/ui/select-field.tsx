@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useErrorAnchor } from '@/components/ui/error-scroll';
 
 type SelectFieldProps = {
   label: string;
@@ -17,9 +18,10 @@ type SelectFieldProps = {
 /** Looks like a text field but opens a picker when tapped. */
 export function SelectField({ label, value, placeholder, icon, error, onPress }: SelectFieldProps) {
   const theme = useTheme();
+  const anchor = useErrorAnchor(error);
 
   return (
-    <View style={styles.container}>
+    <View ref={anchor} style={styles.container}>
       <Text style={[styles.label, { color: theme.text }]}>{label}</Text>
       <Pressable
         accessibilityRole="button"

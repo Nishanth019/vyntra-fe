@@ -12,6 +12,7 @@ import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { ApiError, type PgRoom, type PgRoomInput } from '@/lib/api';
 import { AMENITIES } from '@/lib/pg';
+import { FieldError } from '@/components/ui/field-error';
 
 type RoomFormProps = {
   room?: PgRoom;
@@ -122,7 +123,7 @@ export function RoomForm({ room, onSubmit, onDelete }: RoomFormProps) {
           </Text>
           <StepButton icon="add" label="One bed more" disabled={beds >= 30} onPress={() => setBeds(beds + 1)} />
         </View>
-        {errors.bed_count ? <Text style={[styles.error, { color: theme.danger }]}>{errors.bed_count}</Text> : null}
+        <FieldError message={errors.bed_count} />
       </Card>
 
       <Card title="In the Room" subtitle="Optional">

@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } fro
 import { Icon, type IconName } from '@/components/ui/icon';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useErrorAnchor } from '@/components/ui/error-scroll';
 
 type TextFieldProps = TextInputProps & {
   /** Also used as the accessibility label, so it's required even when hidden. */
@@ -35,6 +36,7 @@ export function TextField({
   ...rest
 }: TextFieldProps) {
   const theme = useTheme();
+  const anchor = useErrorAnchor(error);
   const [focused, setFocused] = useState(false);
   const [hidden, setHidden] = useState(true);
 
@@ -42,7 +44,7 @@ export function TextField({
   const hintColor = hint && { success: theme.success, danger: theme.danger, muted: theme.textSecondary }[hint.tone];
 
   return (
-    <View style={styles.container}>
+    <View ref={anchor} style={styles.container}>
       {hideLabel ? null : (
         <Text style={[styles.label, { color: theme.text }]}>
           {label}

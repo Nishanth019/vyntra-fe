@@ -6,6 +6,7 @@ import { PaymentMethodPicker } from '@/components/payment-method-picker';
 import { Card } from '@/components/ui/card';
 import { Chip } from '@/components/ui/chip';
 import { DateField } from '@/components/ui/date-field';
+import { useErrorAnchor } from '@/components/ui/error-scroll';
 import { Icon } from '@/components/ui/icon';
 import { SelectField } from '@/components/ui/select-field';
 import { TextField } from '@/components/ui/text-field';
@@ -28,11 +29,13 @@ export type StayValues = {
   paid_now: string;
   method: string;
   charges: { description: string; amount: string }[];
-  /** Start of the last bill already paid before Manaze ('' = none, 'auto' = the bill before this one). */
+  /** Start of the last bill already paid before Manaze; 'none' = nothing paid, '' = not answered yet. */
   paid_until: string;
 };
 
-export type StayErrors = Partial<Record<'bed' | 'rent' | 'start_date' | 'due_day' | 'deposit_paid' | 'paid_now' | 'charges', string>>;
+export type StayErrors = Partial<
+  Record<'bed' | 'rent' | 'start_date' | 'due_day' | 'deposit_paid' | 'paid_now' | 'charges' | 'paid_until', string>
+>;
 
 /** Rent comes from the bed's room; rent is due on the joining day each month unless changed. */
 export function initialStay(settings: PgSettings | null, rooms: PgRoom[], bedId?: number): StayValues {
@@ -49,7 +52,7 @@ export function initialStay(settings: PgSettings | null, rooms: PgRoom[], bedId?
     paid_now: '',
     method: 'CASH',
     charges: [],
-    paid_until: 'auto',
+    paid_until: '',
   };
 }
 
@@ -67,6 +70,10 @@ export function validateStay(values: StayValues): StayErrors {
   }
   if (values.charges.some((charge) => !charge.description.trim() || !(Number(charge.amount) > 0))) {
     errors.charges = 'Fill in each charge, or remove it.';
+  }
+  const cycles = billCycles(values);
+  if (cycles.length > 1 && !values.paid_until) {
+    errors.paid_until = 'Choose up to which month they have paid, or "Nothing paid".';
   }
   return errors;
 }
@@ -147,8 +154,8 @@ export function billCycles(values: StayValues, today = new Date()): Cycle[] {
 /** The last bill already paid before Manaze, or null. Only asked when they joined before this bill. */
 export function paidUntilChoice(values: StayValues) {
   const cycles = billCycles(values);
-  if (cycles.length < 2 || values.paid_until === '') return null;
-  return cycles.find((c) => c.start === values.paid_until) ?? cycles[cycles.length - 2];
+  if (cycles.length < 2) return null;
+  return cycles.find((c) => c.start === values.paid_until) ?? null;
 }
 
 const monthLabel = (iso: string) =>
@@ -167,6 +174,8 @@ export function StayFields({ values, onChange, errors, rooms }: StayFieldsProps)
   const [pickerOpen, setPickerOpen] = useState(false);
   const set = (patch: Partial<StayValues>) => onChange({ ...values, ...patch });
   const bill = firstBill(values);
+  const paidUntilAnchor = useErrorAnchor(errors.paid_until && !values.paid_until ? errors.paid_until : undefined);
+  const chargesAnchor = useErrorAnchor(errors.charges);
   const cycles = billCycles(values);
   const paidUntil = paidUntilChoice(values);
   const charges = values.charges.reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
@@ -251,8 +260,8 @@ export function StayFields({ values, onChange, errors, rooms }: StayFieldsProps)
 
       {cycles.length > 1 ? (
         <Card title="Rent Already Paid" subtitle="They joined before you started using Manaze. Up to which month have they paid?">
-          <View style={styles.monthChips}>
-            <Chip label="Nothing paid" selected={!paidUntil} onPress={() => set({ paid_until: '' })} />
+          <View ref={paidUntilAnchor} style={styles.monthChips}>
+            <Chip label="Nothing paid" selected={values.paid_until === 'none'} onPress={() => set({ paid_until: 'none' })} />
             {cycles.map((cycle, i) => (
               <Chip
                 key={cycle.start}
@@ -262,13 +271,17 @@ export function StayFields({ values, onChange, errors, rooms }: StayFieldsProps)
               />
             ))}
           </View>
-          <View style={[styles.preview, { backgroundColor: theme.primarySoft }]}>
-            <Text style={[styles.previewText, { color: theme.primary }]}>
-              {paidUntil
-                ? `Rent up to ${formatDate(paidUntil.end)} is marked as paid (not counted as money received). Due now: ${formatMoney(dueNow ?? 0)}.`
-                : `All ${cycles.length} bills since ${formatDate(values.start_date)} will be due.`}
-            </Text>
-          </View>
+          {errors.paid_until && !values.paid_until ? (
+            <Text style={[styles.hint, { color: theme.danger }]}>{errors.paid_until}</Text>
+          ) : values.paid_until ? (
+            <View style={[styles.preview, { backgroundColor: theme.primarySoft }]}>
+              <Text style={[styles.previewText, { color: theme.primary }]}>
+                {paidUntil
+                  ? `Rent up to ${formatDate(paidUntil.end)} is marked as paid before Manaze (not counted as money received). Due now: ${formatMoney(dueNow ?? 0)}.`
+                  : `All ${cycles.length} bills since ${formatDate(values.start_date)} will be due.`}
+              </Text>
+            </View>
+          ) : null}
         </Card>
       ) : null}
 
@@ -331,7 +344,11 @@ export function StayFields({ values, onChange, errors, rooms }: StayFieldsProps)
             </Pressable>
           </View>
         ))}
-        {errors.charges ? <Text style={[styles.hint, { color: theme.danger }]}>{errors.charges}</Text> : null}
+        {errors.charges ? (
+          <View ref={chargesAnchor}>
+            <Text style={[styles.hint, { color: theme.danger }]}>{errors.charges}</Text>
+          </View>
+        ) : null}
         <Pressable
           accessibilityRole="button"
           onPress={() => set({ charges: [...values.charges, { description: '', amount: '' }] })}

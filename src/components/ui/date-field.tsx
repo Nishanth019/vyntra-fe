@@ -7,6 +7,7 @@ import { Icon } from '@/components/ui/icon';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { formatDate, parseISODate, toISODate } from '@/lib/dates';
+import { useErrorAnchor } from '@/components/ui/error-scroll';
 
 export type DateFieldProps = {
   label: string;
@@ -46,6 +47,7 @@ export function DateField({
   compact = false,
 }: DateFieldProps) {
   const theme = useTheme();
+  const anchor = useErrorAnchor(error);
   const [iosOpen, setIosOpen] = useState(false);
   const [iosDate, setIosDate] = useState(new Date());
   const current = value ? parseISODate(value) : new Date();
@@ -68,7 +70,7 @@ export function DateField({
   }
 
   return (
-    <View style={styles.container}>
+    <View ref={anchor} style={styles.container}>
       <View style={styles.labelRow}>
         <Text style={[styles.label, { color: theme.text }]}>
           {label}

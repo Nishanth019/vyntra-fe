@@ -7,6 +7,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { toISODate } from '@/lib/dates';
 
 import type { DateFieldProps } from './date-field';
+import { useErrorAnchor } from '@/components/ui/error-scroll';
 
 /** The browser's own date picker (a calendar on click), styled like the other fields. */
 export function DateField({
@@ -21,6 +22,7 @@ export function DateField({
   clearable = false,
 }: DateFieldProps) {
   const theme = useTheme();
+  const anchor = useErrorAnchor(error);
   const input = useRef<HTMLInputElement | null>(null);
 
   // Browsers only open their calendar from a tiny icon inside the input; open it from anywhere on the field.
@@ -36,7 +38,7 @@ export function DateField({
   }
 
   return (
-    <View style={styles.container}>
+    <View ref={anchor} style={styles.container}>
       <View style={styles.labelRow}>
         <Text style={[styles.label, { color: theme.text }]}>
           {label}

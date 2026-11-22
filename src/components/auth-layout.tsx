@@ -1,11 +1,12 @@
 import { Link, type Href } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import type { PropsWithChildren } from 'react';
+import { useRef, type PropsWithChildren } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BrandMark } from '@/components/ui/brand-mark';
+import { ErrorScrollProvider, useErrorScrollProvider } from '@/components/ui/error-scroll';
 import { Gradient } from '@/components/ui/gradient';
 import { Icon } from '@/components/ui/icon';
 import { MaxFormWidth, Radius, shadow, Spacing } from '@/constants/theme';
@@ -21,6 +22,9 @@ type AuthLayoutProps = PropsWithChildren<{
 
 export function AuthLayout({ title, subtitle, footer, children }: AuthLayoutProps) {
   const theme = useTheme();
+  const scrollRef = useRef<React.ComponentRef<typeof KeyboardAwareScrollView>>(null);
+  const contentRef = useRef<View>(null);
+  const errorScroll = useErrorScrollProvider(scrollRef, contentRef);
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
@@ -29,11 +33,12 @@ export function AuthLayout({ title, subtitle, footer, children }: AuthLayoutProp
       </View>
       {/* Scrolls the focused field above the keyboard on both Android and iOS. */}
       <KeyboardAwareScrollView
+        ref={scrollRef}
         bottomOffset={Spacing.four}
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
-        <View style={styles.content}>
+        <View ref={contentRef} style={styles.content}>
           <View style={styles.brand}>
             <View style={[styles.logo, shadow(theme.primary, 3)]}>
               <Gradient from={theme.primary} to={theme.primaryEnd} />
@@ -47,7 +52,9 @@ export function AuthLayout({ title, subtitle, footer, children }: AuthLayoutProp
             <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{subtitle}</Text>
           </View>
 
-          <View style={styles.form}>{children}</View>
+          <View style={styles.form}>
+            <ErrorScrollProvider value={errorScroll}>{children}</ErrorScrollProvider>
+          </View>
 
           <View style={styles.footer}>
             <Text style={[styles.footerText, { color: theme.textSecondary }]}>{footer.prompt}</Text>

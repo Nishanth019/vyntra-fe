@@ -32,7 +32,7 @@ function MoveInForm({ tenant, rooms, settings }: { tenant: PgTenantProfile; room
   async function submit() {
     const next = validateStay(stay);
     setErrors(next);
-    setFormError('');
+    setFormError(next.paid_until ?? '');
     if (Object.keys(next).length) return;
     setSubmitting(true);
     try {

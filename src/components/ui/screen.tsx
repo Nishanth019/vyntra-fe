@@ -1,7 +1,8 @@
-import type { PropsWithChildren } from 'react';
+import { useRef, type PropsWithChildren } from 'react';
 import { RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
+import { ErrorScrollProvider, useErrorScrollProvider } from '@/components/ui/error-scroll';
 import { MaxFormWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -24,10 +25,14 @@ export function Screen({
   children,
 }: ScreenProps) {
   const theme = useTheme();
+  const scrollRef = useRef<React.ComponentRef<typeof KeyboardAwareScrollView>>(null);
+  const contentRef = useRef<View>(null);
+  const errorScroll = useErrorScrollProvider(scrollRef, contentRef);
 
   return (
     // Scrolls the focused field above the keyboard on both Android and iOS.
     <KeyboardAwareScrollView
+      ref={scrollRef}
       bottomOffset={Spacing.four}
       contentContainerStyle={styles.scroll}
       contentInsetAdjustmentBehavior="automatic"
@@ -35,14 +40,14 @@ export function Screen({
       refreshControl={
         onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} /> : undefined
       }>
-      <View style={[styles.content, { maxWidth }]}>
+      <View ref={contentRef} style={[styles.content, { maxWidth }]}>
         {title ? (
           <View style={styles.heading}>
             <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
             {subtitle ? <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{subtitle}</Text> : null}
           </View>
         ) : null}
-        {children}
+        <ErrorScrollProvider value={errorScroll}>{children}</ErrorScrollProvider>
       </View>
     </KeyboardAwareScrollView>
   );

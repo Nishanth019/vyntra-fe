@@ -1,5 +1,6 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, type PressableProps } from 'react-native';
 
+import { useArmErrorScroll } from '@/components/ui/error-scroll';
 import { Gradient } from '@/components/ui/gradient';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { Radius, shadow, Spacing } from '@/constants/theme';
@@ -23,9 +24,11 @@ export function Button({
   loading = false,
   disabled,
   style,
+  onPress,
   ...rest
 }: ButtonProps) {
   const theme = useTheme();
+  const armErrorScroll = useArmErrorScroll();
 
   const colors = {
     primary: { background: theme.primary, border: theme.primary, text: theme.onPrimary },
@@ -48,6 +51,10 @@ export function Button({
         (state.pressed || disabled) && styles.dimmed,
         typeof style === 'function' ? style(state) : style,
       ]}
+      onPress={(event) => {
+        armErrorScroll?.();
+        onPress?.(event);
+      }}
       {...rest}>
       {variant === 'primary' ? (
         <View style={styles.fill}>

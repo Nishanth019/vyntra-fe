@@ -21,6 +21,7 @@ import { isValidISODate, toISODate } from '@/lib/dates';
 import { formatMoney, memberName } from '@/lib/format';
 import { paymentAmountError } from '@/lib/payments';
 import { isValidMobile, MOBILE_ERROR, normalizeMobile } from '@/lib/mobile';
+import { FieldError } from '@/components/ui/field-error';
 
 const GENDERS: { value: string; icon: IconName }[] = [
   { value: 'Male', icon: 'male' },
@@ -360,9 +361,7 @@ export function MemberForm({
           ) : (
             <PlanOptions plans={plans} value={planId} onChange={setPlanId} />
           )}
-          {errors.membership_plan_id ? (
-            <Text style={[styles.error, { color: theme.danger }]}>{errors.membership_plan_id}</Text>
-          ) : null}
+          <FieldError message={errors.membership_plan_id} />
 
           {plan ? (
             <>

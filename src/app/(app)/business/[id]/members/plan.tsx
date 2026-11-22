@@ -23,6 +23,7 @@ import { confirm } from '@/lib/confirm';
 import { addDays, daysUntil, formatDate, isValidISODate, parseISODate, toISODate } from '@/lib/dates';
 import { formatMoney, memberName } from '@/lib/format';
 import { paymentAmountError } from '@/lib/payments';
+import { FieldError } from '@/components/ui/field-error';
 
 const TITLES: Record<PlanMode, string> = {
   renew: 'Renew Membership',
@@ -164,7 +165,7 @@ function NewPlanForm({ mode, member, plans }: { mode: NewPlanMode; member: Membe
               : 'Replaces the current plan with a new one. The current plan is closed, and its payments and dues no longer count.'
         }>
         <PlanOptions plans={plans} value={planId} onChange={setPlanId} />
-        {errors.membership_plan_id ? <Text style={[styles.error, { color: theme.danger }]}>{errors.membership_plan_id}</Text> : null}
+        <FieldError message={errors.membership_plan_id} />
 
         {mode === 'change' && member.membership ? (
           <View style={[styles.info, { backgroundColor: theme.primarySoft }]}>

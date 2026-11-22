@@ -4,7 +4,8 @@ import { formatTime } from '@/lib/dates';
 /** Amounts are stored without a currency; the app shows them in rupees. */
 export function formatMoney(amount: string | number) {
   const value = Number(amount);
-  return `₹${value.toLocaleString('en-IN', { maximumFractionDigits: Number.isInteger(value) ? 0 : 2 })}`;
+  const text = Math.abs(value).toLocaleString('en-IN', { maximumFractionDigits: Number.isInteger(value) ? 0 : 2 });
+  return `${value < 0 ? '−' : ''}₹${text}`;
 }
 
 /** e.g. "1 Month", "3 Months", "15 Days". */
