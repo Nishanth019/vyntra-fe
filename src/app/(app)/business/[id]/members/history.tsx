@@ -41,6 +41,7 @@ const ACTIVITY_STYLES: Record<string, { icon: IconName; tone: Tone }> = {
   TENANCY_UPDATED: { icon: 'edit', tone: 'accent' },
   CHARGE_ADDED: { icon: 'add', tone: 'warning' },
   DISCOUNT_GIVEN: { icon: 'rupee', tone: 'accent' },
+  RENT_PAID_BEFORE: { icon: 'check', tone: 'success' },
   DEPOSIT_COLLECT: { icon: 'savings', tone: 'success' },
   DEPOSIT_REFUND: { icon: 'renew', tone: 'primary' },
   DEPOSIT_DEDUCT: { icon: 'wallet', tone: 'warning' },

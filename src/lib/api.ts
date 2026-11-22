@@ -445,6 +445,8 @@ export type PgStayInput = {
   billing_cycle_months?: number;
   due_day?: number;
   start_date?: string;
+  /** Existing tenant: rent of bills starting on or before this date was paid before Manaze. */
+  rent_paid_until?: string;
   prorate_first_bill?: boolean;
   deposit_amount?: string;
   deposit_paid?: string;

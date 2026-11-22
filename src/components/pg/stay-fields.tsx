@@ -28,6 +28,8 @@ export type StayValues = {
   paid_now: string;
   method: string;
   charges: { description: string; amount: string }[];
+  /** Start of the last bill already paid before Manaze ('' = none, 'auto' = the bill before this one). */
+  paid_until: string;
 };
 
 export type StayErrors = Partial<Record<'bed' | 'rent' | 'start_date' | 'due_day' | 'deposit_paid' | 'paid_now' | 'charges', string>>;
@@ -47,6 +49,7 @@ export function initialStay(settings: PgSettings | null, rooms: PgRoom[], bedId?
     paid_now: '',
     method: 'CASH',
     charges: [],
+    paid_until: 'auto',
   };
 }
 
@@ -69,6 +72,7 @@ export function validateStay(values: StayValues): StayErrors {
 }
 
 export function stayInput(values: StayValues): PgStayInput {
+  const paidUntil = paidUntilChoice(values);
   return {
     bed_id: values.bed!.bed.id,
     rent: Number(values.rent).toFixed(2),
@@ -84,6 +88,7 @@ export function stayInput(values: StayValues): PgStayInput {
     ...(Number(values.paid_now) > 0
       ? { payment: { amount: Number(values.paid_now).toFixed(2), payment_method: values.method } }
       : {}),
+    ...(paidUntil ? { rent_paid_until: paidUntil.start } : {}),
   };
 }
 
@@ -119,6 +124,36 @@ export function firstBill(values: StayValues) {
   return { start, end: toISODate(end), days, partial, rent, total: rent + charges, dueDay };
 }
 
+type Cycle = { start: string; end: string; rent: number };
+
+/** Every bill from joining up to today, like the server makes them (first_bill, then ensure_bills). */
+export function billCycles(values: StayValues, today = new Date()): Cycle[] {
+  const bill = firstBill(values);
+  if (!bill) return [];
+  const todayISO = toISODate(today);
+  const cycleRent = Number(values.rent) * values.cycle;
+  const cycles: Cycle[] = [{ start: values.start_date, end: bill.end, rent: bill.rent }];
+  while (cycles.length < 240) {
+    const start = parseISODate(cycles[cycles.length - 1].end);
+    start.setDate(start.getDate() + 1);
+    if (toISODate(start) > todayISO) break;
+    const end = addMonths(start, values.cycle, bill.dueDay);
+    end.setDate(end.getDate() - 1);
+    cycles.push({ start: toISODate(start), end: toISODate(end), rent: cycleRent });
+  }
+  return cycles;
+}
+
+/** The last bill already paid before Manaze, or null. Only asked when they joined before this bill. */
+export function paidUntilChoice(values: StayValues) {
+  const cycles = billCycles(values);
+  if (cycles.length < 2 || values.paid_until === '') return null;
+  return cycles.find((c) => c.start === values.paid_until) ?? cycles[cycles.length - 2];
+}
+
+const monthLabel = (iso: string) =>
+  parseISODate(iso).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+
 type StayFieldsProps = {
   values: StayValues;
   onChange: (values: StayValues) => void;
@@ -132,6 +167,12 @@ export function StayFields({ values, onChange, errors, rooms }: StayFieldsProps)
   const [pickerOpen, setPickerOpen] = useState(false);
   const set = (patch: Partial<StayValues>) => onChange({ ...values, ...patch });
   const bill = firstBill(values);
+  const cycles = billCycles(values);
+  const paidUntil = paidUntilChoice(values);
+  const charges = values.charges.reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+  const dueNow = paidUntil
+    ? cycles.filter((c) => c.start > paidUntil.start).reduce((sum, c) => sum + c.rent, 0) + charges
+    : null;
 
   return (
     <>
@@ -207,6 +248,29 @@ export function StayFields({ values, onChange, errors, rooms }: StayFieldsProps)
           </View>
         ) : null}
       </Card>
+
+      {cycles.length > 1 ? (
+        <Card title="Rent Already Paid" subtitle="They joined before you started using Manaze. Up to which month have they paid?">
+          <View style={styles.monthChips}>
+            <Chip label="Nothing paid" selected={!paidUntil} onPress={() => set({ paid_until: '' })} />
+            {cycles.map((cycle, i) => (
+              <Chip
+                key={cycle.start}
+                label={i === cycles.length - 1 ? `${monthLabel(cycle.start)} (current)` : monthLabel(cycle.start)}
+                selected={paidUntil?.start === cycle.start}
+                onPress={() => set({ paid_until: cycle.start })}
+              />
+            ))}
+          </View>
+          <View style={[styles.preview, { backgroundColor: theme.primarySoft }]}>
+            <Text style={[styles.previewText, { color: theme.primary }]}>
+              {paidUntil
+                ? `Rent up to ${formatDate(paidUntil.end)} is marked as paid (not counted as money received). Due now: ${formatMoney(dueNow ?? 0)}.`
+                : `All ${cycles.length} bills since ${formatDate(values.start_date)} will be due.`}
+            </Text>
+          </View>
+        </Card>
+      ) : null}
 
       <Card title="Security Deposit" subtitle="Optional. Refunded when they leave.">
         <View style={styles.row}>
@@ -287,9 +351,14 @@ export function StayFields({ values, onChange, errors, rooms }: StayFieldsProps)
           onChangeText={(text) => set({ paid_now: money(text) })}
           error={errors.paid_now}
         />
-        {bill && !values.paid_now ? (
+        {bill && !values.paid_now && cycles.length < 2 ? (
           <Pressable accessibilityRole="button" hitSlop={8} onPress={() => set({ paid_now: String(bill.total) })}>
             <Text style={[styles.link, { color: theme.primary }]}>Paid in full ({formatMoney(bill.total)})</Text>
+          </Pressable>
+        ) : null}
+        {dueNow ? (
+          <Pressable accessibilityRole="button" hitSlop={8} onPress={() => set({ paid_now: String(dueNow) })}>
+            <Text style={[styles.link, { color: theme.primary }]}>{`Paid what's due now (${formatMoney(dueNow)})`}</Text>
           </Pressable>
         ) : null}
         {Number(values.paid_now) > 0 ? (
@@ -319,6 +388,11 @@ const styles = StyleSheet.create({
     gap: Spacing.two + 2,
   },
   chips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+  },
+  monthChips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.two,
